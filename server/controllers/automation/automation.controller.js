@@ -21,3 +21,22 @@ exports.openWebsite = async (req, res) => {
   });
 }
 };
+exports.openApp = async (req, res) => {
+  try {
+    const { app } = req.body;
+
+    await automationService.launchApp(app);
+
+    res.json({
+      success: true,
+      message: `Opened ${app}`,
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
