@@ -1,34 +1,3 @@
-Clone the Repository
-git clone https://github.com/Ppoloju/jarvis-ai-desktop-assistant.git
-Go inside:
-cd jarvis-ai-desktop-assistant
-6. Switch to develop
-git fetch --all
-git checkout develop
-7. Create Their Own Branch
-Person 2:
-git checkout -b feature/ai-chat
-Person 3:
-git checkout -b feature/automation
-8. Install Frontend Dependencies
-Go into client:
-cd client
-Install:
-npm install
-Run:
-npm run dev
-They should see something like:
-http://localhost:5173
-9. Install Backend Dependencies
-Open another terminal:
-cd server
-Install:
-npm install
-Run:
-npm run dev
-They should see:
-Server running on port 5000
- 
 # 🤖 Jarvis AI Desktop Assistant
  
 An AI-powered desktop assistant that combines voice interaction, intelligent conversations, and laptop automation to improve productivity and simplify everyday tasks.
