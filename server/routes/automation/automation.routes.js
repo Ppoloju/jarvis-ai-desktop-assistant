@@ -1,10 +1,8 @@
 const express = require("express");
 const router = express.Router();
 
-router.post("/open-website", (req, res) => {
-  res.json({
-    success: true,
-  });
-});
+const automationController = require("../../controllers/automation/automation.controller");
+
+router.post("/open-website", automationController.openWebsite);
 
 module.exports = router;

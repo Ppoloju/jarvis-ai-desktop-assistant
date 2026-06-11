@@ -1,8 +1,23 @@
-exports.openWebsite = (req, res) => {
-  const { url } = req.body;
+const automationService = require("../../services/automation/automation.service");
 
-  res.json({
-    success: true,
-    message: `Website launch request received for ${url}`,
+exports.openWebsite = async (req, res) => {
+   
+
+  try {
+    const { url } = req.body;
+
+    await automationService.launchWebsite(url);
+
+    res.json({
+      success: true,
+      message: `Opened ${url}`,
+    });
+  } catch (error) {
+  console.error(error);
+
+  res.status(500).json({
+    success: false,
+    message: error.message,
   });
+}
 };
