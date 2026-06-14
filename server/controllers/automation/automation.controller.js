@@ -40,3 +40,20 @@ exports.openApp = async (req, res) => {
     });
   }
 };
+exports.captureScreenshot = async (req, res) => {
+  try {
+    const fileName = await automationService.takeScreenshot();
+
+    res.json({
+      success: true,
+      file: fileName,
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
