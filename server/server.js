@@ -4,17 +4,22 @@ const cors = require("cors");
 const logger = require("./middlewares/logger");
 
 const app = express();
-
+const fileRoutes = require("./routes/files/files.routes");
+const automationRoutes = require("./routes/automation/automation.routes");
+const systemRoutes = require("./routes/system.routes");
+const reminderRoutes = require("./routes/reminders/reminders.routes");
 app.use(cors());
 app.use(express.json());
 
-app.use(logger);
-
+app.use("/api/automation", automationRoutes);
+app.use("/api/system", systemRoutes);
+app.use("/api/files", fileRoutes);
+app.use("/api/reminders", reminderRoutes);
 app.get("/", (req, res) => {
   res.send("Jarvis Backend Running");
 });
 
-const PORT = 5000;
+const PORT = 5001;
 
 app.listen(PORT, () => {
   console.log(`Server running on ${PORT}`);
