@@ -1,540 +1,641 @@
 # 🤖 Jarvis AI Desktop Assistant
-
-An AI-powered desktop assistant that combines voice interaction, intelligent conversations, and desktop automation to improve productivity and simplify everyday tasks.
-
+ 
+An AI-powered desktop assistant that combines voice interaction, intelligent conversations, and laptop automation to improve productivity and simplify everyday tasks.
+ 
 ---
+ 
+## 🚀 Features
+ 
+### 🎤 Voice Interaction
 
-## 🚀 Overview
+- Voice recognition
 
-Jarvis AI Desktop Assistant is designed to function as a personal productivity companion capable of:
+- Speech-to-text
 
-- Understanding voice and text commands
-- Answering questions using AI models
-- Automating common desktop tasks
-- Providing system information
-- Improving workflow efficiency through a modern interface
+- Text-to-speech
 
-The project follows a modular architecture that allows multiple developers to work simultaneously with minimal merge conflicts.
+- Voice commands
+ 
+### 💬 AI Assistant
 
+- Natural language conversations
+
+- Gemini/OpenAI integration
+
+- Coding assistance
+
+- Question answering
+
+- Text summarization
+ 
+### 💻 Desktop Automation
+
+- Open applications
+
+- Open websites
+
+- Open folders
+
+- Create files/folders
+
+- Screenshot capture
+
+- System information
+
+- Volume control
+
+- Battery monitoring
+ 
+### 📊 Productivity
+
+- Study mode
+
+- Coding mode
+
+- History tracking
+
+- Smart reminders
+
+- Dashboard
+ 
 ---
-
-# ✨ Features
-
-## 🎤 Voice Interaction
-
-- Speech-to-Text
-- Text-to-Speech
-- Voice Command Processing
-- Voice-Controlled Navigation
-- Future Wake-Word Support
-
-## 💬 AI Assistant
-
-- Natural Language Conversations
-- Gemini/OpenAI Integration
-- Coding Assistance
-- Question Answering
-- Text Summarization
-- Translation Support
-
-## 💻 Desktop Automation
-
-- Open Applications
-- Launch Websites
-- Open Folders
-- Create Files & Directories
-- Screenshot Capture
-- Volume Control
-- Battery Monitoring
-- System Information
-
-## 📊 Productivity Tools
-
-- Study Mode
-- Coding Mode
-- Smart Reminders
-- Dashboard Analytics
-- Conversation History
-
----
-
+ 
 # 🏗️ Tech Stack
-
+ 
 ## Frontend
 
 - React
-- Vite
-- JavaScript
-- Tailwind CSS
 
+- Vite
+
+- JavaScript
+
+- CSS / Tailwind CSS
+ 
 ## Backend
 
 - Node.js
-- Express.js
 
+- Express.js
+ 
 ## AI
 
-- Gemini API
-- OpenAI API (Optional)
-
+- Gemini API / OpenAI API
+ 
 ## Voice
 
 - Web Speech API
-
+ 
 ## Version Control
 
 - Git
+
 - GitHub
-
+ 
 ---
+ 
+# 📁 Project Structure
+ 
+```
 
-# 📂 Project Structure
-
-```text
 jarvis-ai-desktop-assistant/
+ 
+│
 
 ├── client/
-│
+
+│   ├── public/
+
 │   ├── src/
+
 │   │
+
 │   ├── components/
+
 │   │   ├── Chat/
+
 │   │   ├── Voice/
+
 │   │   ├── Navbar/
+
 │   │   ├── Sidebar/
+
 │   │   └── Dashboard/
+
 │   │
+
 │   ├── pages/
+
 │   │   ├── Home/
+
 │   │   ├── Automation/
+
 │   │   ├── History/
+
 │   │   └── Settings/
+
 │   │
+
 │   ├── services/
-│   │   ├── api.js
-│   │   ├── chat/
-│   │   ├── speech/
-│   │   └── automation/
-│   │
+
 │   ├── hooks/
+
 │   ├── utils/
+
 │   ├── context/
+
 │   └── assets/
+
 │
+
 ├── server/
+
 │   ├── routes/
+
 │   ├── controllers/
+
 │   ├── services/
+
 │   ├── middlewares/
+
+│   ├── utils/
+
 │   ├── config/
+
 │   └── server.js
+
 │
+
 ├── docs/
+
+│   ├── architecture.md
+
+│   ├── api-contract.md
+
+│   ├── branch-strategy.md
+
+│   └── task-allocation.md
+
+│
+
 ├── README.md
-├── CONTRIBUTING.md
+
 ├── LICENSE
+
 └── .gitignore
+
 ```
-
+ 
 ---
-
+ 
 # ⚙️ Prerequisites
-
+ 
 Install the following before running the project:
-
+ 
 - Git
-- Node.js (LTS)
+
+- Node.js (LTS Version)
+
 - npm
+
 - VS Code
-
-### Recommended VS Code Extensions
-
-- ESLint
-- Prettier
-- GitLens
-- Error Lens
+ 
+Recommended VS Code Extensions:
+ 
 - Continue
 
+- ESLint
+
+- Prettier
+
+- GitLens
+
+- Error Lens
+ 
 ---
-
-# 📥 Installation
-
-## Clone Repository
-
+ 
+# 📥 Clone Repository
+ 
 ```bash
+
 git clone https://github.com/Ppoloju/jarvis-ai-desktop-assistant.git
-
+ 
 cd jarvis-ai-desktop-assistant
+
 ```
-
+ 
 ---
-
-## Frontend Setup
-
+ 
+# 📦 Frontend Setup
+ 
 ```bash
+
 cd client
-
+ 
 npm install
-
+ 
 npm run dev
+
 ```
-
-Frontend:
-
-```text
+ 
+Frontend runs on:
+ 
+```
 http://localhost:5173
+
 ```
-
+ 
 ---
-
-## Backend Setup
-
-Open another terminal:
-
+ 
+# ⚙️ Backend Setup
+ 
 ```bash
+
 cd server
-
+ 
 npm install
-
+ 
 npm run dev
+
 ```
-
-Backend:
-
-```text
+ 
+Backend runs on:
+ 
+```
 http://localhost:5000
+
 ```
-
+ 
 ---
-
+ 
 # 🔐 Environment Variables
-
+ 
 Create:
+ 
+```
 
-```text
 server/.env
-```
 
+```
+ 
 Example:
-
+ 
 ```env
+
 PORT=5000
-
+ 
 GEMINI_API_KEY=your_api_key_here
-```
 
+```
+ 
 Never commit:
+ 
+```
 
-```text
 .env
-```
 
+```
+ 
 ---
+ 
+# 👥 Team Collaboration Workflow
+ 
+## Repository Owner
+ 
+- Manage repository
 
-# 👥 Team Structure
+- Review Pull Requests
 
-## Developer 1 – Project Lead & Integration
+- Merge branches
 
-### Responsibilities
+- Maintain architecture
 
-- Project setup
-- Routing
-- Layouts
-- Navbar
-- Sidebar
-- API Integration
-- Documentation
-- Git Management
-- Deployment
-- Final Integration
-
-### Owned Directories
-
-```text
-client/src/App.jsx
-client/src/main.jsx
-client/src/components/Navbar/
-client/src/components/Sidebar/
-client/src/layouts/
-client/src/context/
-client/src/services/api.js
-client/src/routes/
-
-docs/
-README.md
-CONTRIBUTING.md
-```
-
+- Final deployment
+ 
 ---
-
-## Developer 2 – AI & Voice Module
-
-### Responsibilities
-
-- Chat Interface
-- Gemini/OpenAI Integration
-- Voice Recognition
-- Speech Synthesis
-- Conversation History
-
-### Owned Directories
-
-```text
-client/src/components/Chat/
-client/src/components/Voice/
-client/src/pages/Home/
-
-client/src/services/chat/
-client/src/services/speech/
-
-server/routes/chat/
-server/controllers/chat/
-server/services/ai/
-server/utils/prompts/
+ 
+## Developer 1
+ 
+Branch:
+ 
 ```
-
----
-
-## Developer 3 – Desktop Automation
-
-### Responsibilities
-
-- Desktop Automation
-- Dashboard
-- File Operations
-- Reminders
-- Screenshot Service
-- System Monitoring
-
-### Owned Directories
-
-```text
-client/src/pages/Automation/
-client/src/components/Dashboard/
-
-client/src/services/automation/
-
-server/routes/automation/
-server/controllers/automation/
-server/services/automation/
-server/services/system/
-server/utils/system/
-```
-
----
-
-# 🌿 Git Workflow
-
-## Step 1: Switch to Develop
-
-```bash
-git fetch --all
-
-git checkout develop
-```
-
-## Step 2: Create Feature Branch
-
-### Project Setup
-
-```bash
-git checkout -b feature/project-setup
-```
-
-### AI Module
-
-```bash
-git checkout -b feature/ai-chat
-```
-
-### Automation Module
-
-```bash
-git checkout -b feature/automation
-```
-
-## Step 3: Work & Commit
-
-```bash
-git status
-
-git add .
-
-git commit -m "feat: implement voice recognition"
-```
-
-## Step 4: Push Branch
-
-```bash
-git push origin feature/ai-chat
-```
-
-## Step 5: Create Pull Request
-
-```text
-feature/your-branch
-        ↓
-     develop
-```
-
-Wait for review before merging.
-
----
-
-# 🚫 Team Rules
-
-### Never Push Directly To
-
-```text
-main
-```
-
-or
-
-```text
-develop
-```
-
-### Always
-
-Pull latest changes:
-
-```bash
-git checkout develop
-
-git pull origin develop
-```
-
-Create a feature branch:
-
-```bash
-git checkout -b feature/your-feature
-```
-
-Use meaningful commit messages:
-
-```text
-feat: add voice recognition
-
-feat: implement screenshot service
-
-fix: resolve sidebar rendering issue
-
-docs: update README
-```
-
----
-
-# 📌 Branch Strategy
-
-```text
-                   main
-                     ▲
-                     │
-               Final Release
-                     │
-
-                 develop
-
-        ▲            ▲            ▲
 
 feature/project-setup
 
-feature/ai-chat
-
-feature/automation
 ```
-
----
-
-# 🛣️ Development Roadmap
-
-## Milestone 1
-
-- Repository Setup
-- Folder Structure
-- React + Express Setup
-- Branch Creation
-
-## Milestone 2
-
-### Developer 1
-
+ 
+Responsibilities:
+ 
 - Routing
-- Layouts
 
-### Developer 2
+- Project structure
 
-- Chat UI
-- AI Integration
+- Layout
 
-### Developer 3
-
-- Automation Endpoints
-
-## Milestone 3
-
-### Developer 1
-
-- Settings
-- Shared Services
-
-### Developer 2
-
-- Voice Features
-- History
-
-### Developer 3
-
-- Screenshot Service
-- System Information
-- Dashboard
-
-## Milestone 4
+- Navigation
 
 - Integration
-- Testing
-- Bug Fixes
-- Pull Requests
+
 - Documentation
-- Demo Preparation
-
+ 
 ---
+ 
+## Developer 2
+ 
+Branch:
+ 
+```
 
-# 🔮 Future Enhancements
+feature/ai-chat
 
-- Wake Word Detection
-- Local AI Models
-- Plugin Architecture
-- Calendar Integration
-- Email Automation
-- OCR Support
-- PDF Summarization
-- Smart Scheduling
-- Multi-Language Support
-- AI Document Assistant
+```
+ 
+Responsibilities:
+ 
+- Chat UI
 
+- Voice recognition
+
+- Speech synthesis
+
+- AI integration
+
+- Conversation history
+ 
 ---
+ 
+## Developer 3
+ 
+Branch:
+ 
+```
 
+feature/automation
+
+```
+ 
+Responsibilities:
+ 
+- Desktop automation
+
+- File operations
+
+- Screenshot service
+
+- System information
+
+- Dashboard
+
+- Reminders
+ 
+---
+ 
+# 🌿 Git Workflow
+ 
+## Step 1
+ 
+Clone repository
+ 
+```bash
+
+git clone https://github.com/Ppoloju/jarvis-ai-desktop-assistant.git
+
+```
+ 
+---
+ 
+## Step 2
+ 
+Switch to develop
+ 
+```bash
+
+git fetch --all
+ 
+git checkout develop
+
+```
+ 
+---
+ 
+## Step 3
+ 
+Create your feature branch
+ 
+Example:
+ 
+```bash
+
+git checkout -b feature/ai-chat
+
+```
+ 
+or
+ 
+```bash
+
+git checkout -b feature/automation
+
+```
+ 
+---
+ 
+## Step 4
+ 
+Work on your assigned module
+ 
+Check status:
+ 
+```bash
+
+git status
+
+```
+ 
+Stage files:
+ 
+```bash
+
+git add .
+
+```
+ 
+Commit:
+ 
+```bash
+
+git commit -m "feat: implement voice recognition"
+
+```
+ 
+Push:
+ 
+```bash
+
+git push origin feature/ai-chat
+
+```
+ 
+---
+ 
+## Step 5
+ 
+Create a Pull Request
+ 
+```
+
+feature/your-branch
+ 
+        ↓
+ 
+develop
+
+```
+ 
+Wait for review before merging.
+ 
+---
+ 
+# 🚫 Team Rules
+ 
+## Never push directly to:
+ 
+```
+
+main
+
+```
+ 
+or
+ 
+```
+
+develop
+
+```
+ 
+---
+ 
+## Always:
+ 
+- Pull latest changes before starting work
+ 
+```bash
+
+git checkout develop
+ 
+git pull origin develop
+
+```
+ 
+- Create a feature branch
+ 
+```bash
+
+git checkout -b feature/your-feature
+
+```
+ 
+- Commit frequently
+ 
+- Use meaningful commit messages
+ 
+Example:
+ 
+```text
+
+feat: add voice recognition
+ 
+feat: implement screenshot service
+ 
+fix: resolve sidebar rendering issue
+ 
+docs: update README
+
+```
+ 
+---
+ 
+# 📌 Branch Strategy
+ 
+```
+
+                    main
+
+                      ▲
+
+                      │
+
+                Final Release
+
+                      │
+ 
+                  develop
+
+          ▲            ▲            ▲
+ 
+feature/project-setup
+ 
+feature/ai-chat
+ 
+feature/automation
+
+```
+ 
+---
+ 
+# 📋 Future Enhancements
+ 
+- Wake word detection
+
+- Local AI models
+
+- Plugin system
+
+- Smart scheduling
+
+- Email automation
+
+- Calendar integration
+
+- Multi-language support
+
+- OCR support
+
+- PDF summarization
+
+- AI document assistant
+ 
+---
+ 
 # 🤝 Contributing
-
+ 
 1. Pull latest `develop`
-2. Create a feature branch
-3. Make changes
-4. Commit frequently
-5. Push your branch
-6. Create a Pull Request
-7. Wait for review
-8. Merge into `develop`
 
+2. Create your feature branch
+
+3. Commit changes
+
+4. Push your branch
+
+5. Open a Pull Request
+
+6. Wait for review
+
+7. Merge into `develop`
+ 
 ---
-
+ 
 # 📄 License
-
+ 
 This project is licensed under the MIT License.
-
+ 
 ---
+ 
+# 💡 Project Vision
+ 
+The goal of Jarvis AI Desktop Assistant is to create a practical AI-powered productivity companion capable of understanding natural language, automating desktop tasks, and providing an intuitive voice-enabled user experience while maintaining a modular and scalable architecture suitable for collaborative development.
+ 
+ 
 
-# 🎯 Vision
-
-Jarvis AI Desktop Assistant aims to become a practical AI-powered productivity companion that bridges the gap between conversational AI and desktop automation. The long-term goal is to create a modular, scalable, and extensible platform capable of understanding user intent, automating repetitive tasks, and enhancing productivity through natural voice and text interactions.
+ 

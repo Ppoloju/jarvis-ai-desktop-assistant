@@ -1,6 +1,8 @@
 const express = require("express");
 const cors = require("cors");
 
+const logger = require("./middlewares/logger");
+
 const app = express();
 const fileRoutes = require("./routes/files/files.routes");
 const automationRoutes = require("./routes/automation/automation.routes");
@@ -20,5 +22,5 @@ app.get("/", (req, res) => {
 const PORT = 5001;
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server running on ${PORT}`);
 });
