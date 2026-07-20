@@ -1,8 +1,6 @@
-const automationService = require("../../services/automation/automation.service");
+import * as automationService from "../../services/automation/automation.service.js";
 
-exports.openWebsite = async (req, res) => {
-   
-
+export const openWebsite = async (req, res) => {
   try {
     const { url } = req.body;
 
@@ -13,15 +11,16 @@ exports.openWebsite = async (req, res) => {
       message: `Opened ${url}`,
     });
   } catch (error) {
-  console.error(error);
+    console.error(error);
 
-  res.status(500).json({
-    success: false,
-    message: error.message,
-  });
-}
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
 };
-exports.openApp = async (req, res) => {
+
+export const openApp = async (req, res) => {
   try {
     const { app } = req.body;
 
@@ -40,7 +39,8 @@ exports.openApp = async (req, res) => {
     });
   }
 };
-exports.captureScreenshot = async (req, res) => {
+
+export const captureScreenshot = async (req, res) => {
   try {
     const fileName = await automationService.takeScreenshot();
 

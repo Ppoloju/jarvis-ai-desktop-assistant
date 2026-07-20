@@ -1,9 +1,9 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
 
-const filesController = require("../../controllers/files/files.controller");
-router.post("/create-folder", filesController.createFolder);
-router.post("/create-file", filesController.createFile);
-router.patch("/rename-file", filesController.renameFile);
-router.delete("/delete-file", filesController.deleteFile);
-module.exports = router;
+import { createFolder, createFile, renameFile, deleteFile } from "../../controllers/files/files.controller.js";
+router.post("/create-folder", createFolder);
+router.post("/create-file", createFile);
+router.patch("/rename-file", renameFile);
+router.delete("/delete-file", deleteFile);
+export default router;

@@ -1,11 +1,10 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
 
-const remindersController =
-  require("../../controllers/reminders/reminders.controller");
+import { createReminder, getReminders, deleteReminder } from "../../controllers/reminders/reminders.controller.js";
 
-router.post("/", remindersController.createReminder);
-router.get("/", remindersController.getReminders);
-router.delete("/:id", remindersController.deleteReminder);
+router.post("/", createReminder);
+router.get("/", getReminders);
+router.delete("/:id", deleteReminder);
 
-module.exports = router;
+export default router;

@@ -1,9 +1,9 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
 
-const automationController = require("../../controllers/automation/automation.controller");
+import { openWebsite, openApp, captureScreenshot } from "../../controllers/automation/automation.controller.js";
 
-router.post("/open-website", automationController.openWebsite);
-router.post("/open-app", automationController.openApp);
-router.post("/screenshot", automationController.captureScreenshot);
-module.exports = router;
+router.post("/open-website", openWebsite);
+router.post("/open-app", openApp);
+router.post("/screenshot", captureScreenshot);
+export default router;

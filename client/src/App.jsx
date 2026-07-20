@@ -10,9 +10,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<MainLayout />} />
-        <Route path="/settings" element={<Settings />} />   
-          <ChatBox />
-
+        <Route path="/settings" element={<Settings />} />
       </Routes>
     </BrowserRouter>
   );

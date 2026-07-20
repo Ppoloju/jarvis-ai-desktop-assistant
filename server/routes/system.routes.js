@@ -1,8 +1,8 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
 
-const systemController = require("../controllers/system.controller");
+import { getSystemInfo } from "../controllers/system.controller.js";
 
-router.get("/info", systemController.getSystemInfo);
+router.get("/info", getSystemInfo);
 
-module.exports = router;
+export default router;

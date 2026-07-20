@@ -1,6 +1,6 @@
 const reminders = [];
 
-exports.addReminder = (text) => {
+export const addReminder = (text) => {
   const reminder = {
     id: Date.now(),
     text,
@@ -11,9 +11,9 @@ exports.addReminder = (text) => {
   return reminder;
 };
 
-exports.getReminders = () => reminders;
+export const getReminders = () => reminders;
 
-exports.deleteReminder = (id) => {
+export const deleteReminder = (id) => {
   const index = reminders.findIndex(
     (r) => r.id === Number(id)
   );

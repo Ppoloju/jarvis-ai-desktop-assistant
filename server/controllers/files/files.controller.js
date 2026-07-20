@@ -1,6 +1,6 @@
-const filesService = require("../../services/files/files.service");
+import * as filesService from "../../services/files/files.service.js";
 
-exports.createFolder = async (req, res) => {
+export const createFolder = async (req, res) => {
   try {
     const { folderName } = req.body;
 
@@ -19,7 +19,8 @@ exports.createFolder = async (req, res) => {
     });
   }
 };
-exports.createFile = async (req, res) => {
+
+export const createFile = async (req, res) => {
   try {
     const { fileName, content } = req.body;
 
@@ -41,7 +42,8 @@ exports.createFile = async (req, res) => {
     });
   }
 };
-exports.renameFile = async (req, res) => {
+
+export const renameFile = async (req, res) => {
     console.log("BODY:", req.body);
   try {
     const { oldName, newName } = req.body;
@@ -64,7 +66,8 @@ exports.renameFile = async (req, res) => {
     });
   }
 };
-exports.deleteFile = async (req, res) => {
+
+export const deleteFile = async (req, res) => {
   try {
     const { fileName } = req.body;
 

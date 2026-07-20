@@ -1,10 +1,9 @@
-const { exec } = require("child_process");
-const screenshot = require("screenshot-desktop");
-const path = require("path");
+import { exec } from "child_process";
+import screenshot from "screenshot-desktop";
+import path from "path";
+import open from "open";
 
-exports.launchWebsite = async (url) => {
-  const open = (await import("open")).default;
-
+export const launchWebsite = async (url) => {
   console.log("SERVICE CALLED:", url);
 
   await open(url);
@@ -12,27 +11,27 @@ exports.launchWebsite = async (url) => {
   console.log("OPEN FINISHED");
 };
 
-exports.launchApp = async (app) => {
+export const launchApp = async (app) => {
   switch (app.toLowerCase()) {
     case "chrome":
-      exec('open -a "Google Chrome"');
+      exec('start chrome');
       break;
     case "vscode":
-      exec('open -a "Visual Studio Code"');
+      exec('code');
       break;
     case "calculator":
-      exec('open -a "Calculator"');
+      exec('calc');
       break;
     default:
       throw new Error(`Unsupported app: ${app}`);
   }
 };
 
-exports.takeScreenshot = async () => {
+export const takeScreenshot = async () => {
   const fileName = `screenshot-${Date.now()}.png`;
 
   const filePath = path.join(
-    __dirname,
+    import.meta.dirname,
     "../../screenshots",
     fileName
   );

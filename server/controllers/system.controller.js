@@ -1,8 +1,6 @@
+import * as systemService from "../services/system/system.service.js";
 
-
-const systemService = require("../services/system/system.service");
-
-exports.getSystemInfo = (req, res) => {
+export const getSystemInfo = (req, res) => {
   const info = systemService.getSystemInfo();
 
   res.json(info);

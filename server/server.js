@@ -1,18 +1,14 @@
 import express from "express";
 import cors from "cors";
+import logger from "./middlewares/logger.js";
+import fileRoutes from "./routes/files/files.routes.js";
+import automationRoutes from "./routes/automation/automation.routes.js";
+import systemRoutes from "./routes/system.routes.js";
+import reminderRoutes from "./routes/reminders/reminders.routes.js";
 
-const logger = require("./middlewares/logger");
+const app = express();
 
 // middleware
-app.use(cors());
-app.use(express.json());
-
-// test route (IMPORTANT for debugging)
-const app = express();
-const fileRoutes = require("./routes/files/files.routes");
-const automationRoutes = require("./routes/automation/automation.routes");
-const systemRoutes = require("./routes/system.routes");
-const reminderRoutes = require("./routes/reminders/reminders.routes");
 app.use(cors());
 app.use(express.json());
 
@@ -39,8 +35,7 @@ app.post("/api/chat", (req, res) => {
 });
 
 // start server
-const PORT = 5000;
-const PORT = 5001;
+const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`Server running on ${PORT}`);

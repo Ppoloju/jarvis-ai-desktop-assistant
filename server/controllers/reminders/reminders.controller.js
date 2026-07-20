@@ -1,6 +1,6 @@
-const remindersService = require("../../services/reminders/reminders.service");
+import * as remindersService from "../../services/reminders/reminders.service.js";
 
-exports.createReminder = (req, res) => {
+export const createReminder = (req, res) => {
   try {
     const { text } = req.body;
 
@@ -19,11 +19,11 @@ exports.createReminder = (req, res) => {
   }
 };
 
-exports.getReminders = (req, res) => {
+export const getReminders = (req, res) => {
   res.json(remindersService.getReminders());
 };
 
-exports.deleteReminder = (req, res) => {
+export const deleteReminder = (req, res) => {
   try {
     remindersService.deleteReminder(req.params.id);
 

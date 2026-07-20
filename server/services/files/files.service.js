@@ -1,9 +1,9 @@
-const fs = require("fs");
-const path = require("path");
+import fs from "fs";
+import path from "path";
 
-exports.createFolder = async (folderName) => {
+export const createFolder = async (folderName) => {
   const folderPath = path.join(
-    __dirname,
+    import.meta.dirname,
     "../../storage",
     folderName
   );
@@ -12,9 +12,10 @@ exports.createFolder = async (folderName) => {
 
   return folderPath;
 };
-exports.createFile = async (fileName, content = "") => {
+
+export const createFile = async (fileName, content = "") => {
   const filePath = path.join(
-    __dirname,
+    import.meta.dirname,
     "../../storage",
     fileName
   );
@@ -23,15 +24,16 @@ exports.createFile = async (fileName, content = "") => {
 
   return filePath;
 };
-exports.renameFile = async (oldName, newName) => {
+
+export const renameFile = async (oldName, newName) => {
   const oldPath = path.join(
-    __dirname,
+    import.meta.dirname,
     "../../storage",
     oldName
   );
 
   const newPath = path.join(
-    __dirname,
+    import.meta.dirname,
     "../../storage",
     newName
   );
@@ -40,9 +42,10 @@ exports.renameFile = async (oldName, newName) => {
 
   return newPath;
 };
-exports.deleteFile = async (fileName) => {
+
+export const deleteFile = async (fileName) => {
   const filePath = path.join(
-    __dirname,
+    import.meta.dirname,
     "../../storage",
     fileName
   );

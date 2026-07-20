@@ -1,6 +1,6 @@
-const os = require("os");
+import os from "os";
 
-exports.getSystemInfo = () => {
+export const getSystemInfo = () => {
   const bytesToGB = (bytes) =>
     (bytes / (1024 * 1024 * 1024)).toFixed(2);
 
