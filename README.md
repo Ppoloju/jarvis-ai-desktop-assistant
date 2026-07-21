@@ -1,64 +1,49 @@
-# ?? Jarvis AI Desktop Assistant
+# Jarvis AI Desktop Assistant
 
-An AI-powered desktop assistant that combines voice interaction, intelligent conversations, and laptop automation to improve productivity and simplify everyday tasks.
+An AI-powered desktop assistant with a modern UI that combines intelligent conversations, desktop automation, and productivity tools to simplify everyday tasks.
 
----
+## Features
 
-## ?? Features
+### AI Chat
+- Natural language conversations with Jarvis
+- Real-time chat interface with modern design
+- Error handling and loading states
 
-### ?? Voice Interaction
-- Voice recognition
-- Speech-to-text
-- Text-to-speech
-- Voice commands
+### Desktop Automation
+- Open websites (e.g., Google, YouTube)
+- Launch applications (Chrome, VS Code, Calculator)
+- Capture screenshots
+- System information monitoring
 
-### ?? AI Assistant
-- Natural language conversations
-- Gemini/OpenAI integration
-- Coding assistance
-- Question answering
-- Text summarization
+### File Management
+- Create folders and files
+- Rename files
+- Delete files
 
-### ?? Desktop Automation
-- Open applications
-- Open websites
-- Open folders
-- Create files/folders
-- Screenshot capture
-- System information
-- Volume control
-- Battery monitoring
+### Reminders
+- Create and manage reminders
+- Delete reminders
 
-### ?? Productivity
-- Study mode
-- Coding mode
-- History tracking
-- Smart reminders
-- Dashboard
+### Modern UI
+- Beautiful gradient design with Tailwind CSS
+- Responsive layout with sidebar navigation
+- Smooth transitions and hover effects
+- Card-based components
 
----
-
-## ??? Tech Stack
+## Tech Stack
 
 ### Frontend
 - React
 - Vite
-- JavaScript
-- CSS / Tailwind CSS
+- Tailwind CSS
+- React Router
 
 ### Backend
 - Node.js
 - Express.js
+- ES Modules
 
-### AI
-- Gemini API / OpenAI API
-
-### Voice
-- Web Speech API
-
----
-
-## ?? Project Structure
+## Project Structure
 
 ```
 jarvis-ai-desktop-assistant/
@@ -66,43 +51,39 @@ jarvis-ai-desktop-assistant/
 ¦   +-- public/
 ¦   +-- src/
 ¦   ¦   +-- components/
+¦   ¦   ¦   +-- Chat/
+¦   ¦   ¦   +-- Navbar/
+¦   ¦   ¦   +-- Sidebar/
 ¦   ¦   +-- pages/
+¦   ¦   ¦   +-- Automation/
+¦   ¦   ¦   +-- Settings/
 ¦   ¦   +-- services/
-¦   ¦   +-- hooks/
-¦   ¦   +-- utils/
-¦   ¦   +-- context/
+¦   ¦   ¦   +-- api.js
+¦   ¦   +-- layouts/
+¦   ¦   +-- App.jsx
 ¦   +-- package.json
 +-- server/
 ¦   +-- routes/
 ¦   +-- controllers/
 ¦   +-- services/
 ¦   +-- middlewares/
-¦   +-- utils/
 ¦   +-- server.js
 +-- README.md
-+-- LICENSE
-+-- .gitignore
 ```
 
----
-
-## ?? Prerequisites
+## Prerequisites
 
 - Node.js (LTS Version)
 - npm
 
----
-
-## ?? Clone Repository
+## Clone Repository
 
 ```bash
 git clone https://github.com/Ppoloju/jarvis-ai-desktop-assistant.git
 cd jarvis-ai-desktop-assistant
 ```
 
----
-
-## ?? Frontend Setup
+## Frontend Setup
 
 ```bash
 cd client
@@ -112,9 +93,7 @@ npm run dev
 
 Frontend runs on: `http://localhost:5173`
 
----
-
-## ?? Backend Setup
+## Backend Setup
 
 ```bash
 cd server
@@ -124,20 +103,7 @@ npm run dev
 
 Backend runs on: `http://localhost:5000`
 
----
-
-## ?? Environment Variables
-
-Create `server/.env`:
-
-```env
-PORT=5000
-GEMINI_API_KEY=your_api_key_here
-```
-
----
-
-## ?? API Endpoints
+## API Endpoints
 
 ### Automation
 - `POST /api/automation/open-website` - Open a website
@@ -161,8 +127,6 @@ GEMINI_API_KEY=your_api_key_here
 ### Chat
 - `POST /api/chat` - Send message to AI
 
----
-
-## ?? License
+## License
 
 This project is licensed under the MIT License.
