@@ -141,3 +141,15 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Python virtual environments
+venv/
+.venv/
+
+# Codebuff / Freebuff workspace files
+.freebuff/
+
+# Generated app output
+dist/
+server/screenshots/
+server/storage/
