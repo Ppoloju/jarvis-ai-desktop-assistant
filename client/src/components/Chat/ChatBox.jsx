@@ -1,27 +1,39 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { sendMessage } from "../../services/api";
+import { getChatHistory, saveChatHistory } from "../../utils/history";
 
 export default function ChatBox() {
   const [message, setMessage] = useState("");
-  const [chat, setChat] = useState([]);
+  const [chat, setChat] = useState(() => getChatHistory());
   const [isLoading, setIsLoading] = useState(false);
 
+  useEffect(() => {
+    saveChatHistory(chat);
+  }, [chat]);
+
   const handleSendMessage = async () => {
-    if (!message.trim()) return;
+    const text = message.trim();
+
+    if (!text || isLoading) return;
 
     setIsLoading(true);
+    setMessage("");
+
     try {
-      const data = await sendMessage(message);
-      setChat([...chat, { user: message, bot: data.reply }]);
-      setMessage("");
+      const data = await sendMessage(text);
+      setChat((prev) => [...prev, { user: text, bot: data.reply }]);
     } catch (error) {
       console.error("Error sending message:", error);
-      setChat([...chat, { user: message, bot: "Sorry, something went wrong." }]);
+      setChat((prev) => [
+        ...prev,
+        { user: text, bot: "Sorry, something went wrong." },
+      ]);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
-  const handleKeyPress = (e) => {
+  const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
@@ -61,7 +73,7 @@ export default function ChatBox() {
           type="text"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          onKeyPress={handleKeyPress}
+          onKeyDown={handleKeyDown}
           placeholder="Type your message..."
           className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
           disabled={isLoading}

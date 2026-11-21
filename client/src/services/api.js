@@ -1,105 +1,58 @@
-const API_BASE = "http://localhost:5000";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
+
+const request = async (path, options) => {
+  const response = await fetch(`${API_BASE}${path}`, options);
+
+  if (!response.ok) {
+    throw new Error(`Request failed with status ${response.status}`);
+  }
+
+  return response.json();
+};
+
+const jsonOptions = (method, body) => ({
+  method,
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(body),
+});
 
 // Chat API
-export const sendMessage = async (message) => {
-  const response = await fetch(`${API_BASE}/api/chat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message }),
-  });
-  return response.json();
-};
+export const sendMessage = async (message) =>
+  request("/api/chat", jsonOptions("POST", { message }));
 
 // Automation API
-export const openWebsite = async (url) => {
-  const response = await fetch(`${API_BASE}/api/automation/open-website`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ url }),
-  });
-  return response.json();
-};
+export const openWebsite = async (url) =>
+  request("/api/automation/open-website", jsonOptions("POST", { url }));
 
-export const openApp = async (app) => {
-  const response = await fetch(`${API_BASE}/api/automation/open-app`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ app }),
-  });
-  return response.json();
-};
+export const openApp = async (app) =>
+  request("/api/automation/open-app", jsonOptions("POST", { app }));
 
-export const captureScreenshot = async () => {
-  const response = await fetch(`${API_BASE}/api/automation/screenshot`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-  });
-  return response.json();
-};
+export const captureScreenshot = async () =>
+  request("/api/automation/screenshot", { method: "POST" });
 
 // System API
-export const getSystemInfo = async () => {
-  const response = await fetch(`${API_BASE}/api/system/info`);
-  return response.json();
-};
+export const getSystemInfo = async () => request("/api/system/info");
 
 // Files API
-export const createFolder = async (folderName) => {
-  const response = await fetch(`${API_BASE}/api/files/create-folder`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ folderName }),
-  });
-  return response.json();
-};
+export const createFolder = async (folderName) =>
+  request("/api/files/create-folder", jsonOptions("POST", { folderName }));
 
-export const createFile = async (fileName, content) => {
-  const response = await fetch(`${API_BASE}/api/files/create-file`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ fileName, content }),
-  });
-  return response.json();
-};
+export const createFile = async (fileName, content) =>
+  request("/api/files/create-file", jsonOptions("POST", { fileName, content }));
 
-export const renameFile = async (oldName, newName) => {
-  const response = await fetch(`${API_BASE}/api/files/rename-file`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ oldName, newName }),
-  });
-  return response.json();
-};
+export const renameFile = async (oldName, newName) =>
+  request("/api/files/rename-file", jsonOptions("PATCH", { oldName, newName }));
 
-export const deleteFile = async (fileName) => {
-  const response = await fetch(`${API_BASE}/api/files/delete-file`, {
-    method: "DELETE",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ fileName }),
-  });
-  return response.json();
-};
+export const deleteFile = async (fileName) =>
+  request("/api/files/delete-file", jsonOptions("DELETE", { fileName }));
 
 // Reminders API
-export const createReminder = async (text) => {
-  const response = await fetch(`${API_BASE}/api/reminders`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text }),
-  });
-  return response.json();
-};
+export const createReminder = async (text) =>
+  request("/api/reminders", jsonOptions("POST", { text }));
 
-export const getReminders = async () => {
-  const response = await fetch(`${API_BASE}/api/reminders`);
-  return response.json();
-};
+export const getReminders = async () => request("/api/reminders");
 
-export const deleteReminder = async (id) => {
-  const response = await fetch(`${API_BASE}/api/reminders/${id}`, {
-    method: "DELETE",
-  });
-  return response.json();
-};
+export const deleteReminder = async (id) =>
+  request(`/api/reminders/${id}`, { method: "DELETE" });
 
 export default API_BASE;

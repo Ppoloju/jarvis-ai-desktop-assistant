@@ -1,12 +1,26 @@
 import fs from "fs";
 import path from "path";
 
+const storageDir = path.join(import.meta.dirname, "../../storage");
+
+const resolveInStorage = (name) => {
+  if (!name) {
+    throw new Error("A file name is required");
+  }
+
+  const target = path.join(storageDir, name);
+
+  if (!target.startsWith(storageDir)) {
+    throw new Error("Path must stay inside the storage folder");
+  }
+
+  fs.mkdirSync(storageDir, { recursive: true });
+
+  return target;
+};
+
 export const createFolder = async (folderName) => {
-  const folderPath = path.join(
-    import.meta.dirname,
-    "../../storage",
-    folderName
-  );
+  const folderPath = resolveInStorage(folderName);
 
   fs.mkdirSync(folderPath, { recursive: true });
 
@@ -14,11 +28,7 @@ export const createFolder = async (folderName) => {
 };
 
 export const createFile = async (fileName, content = "") => {
-  const filePath = path.join(
-    import.meta.dirname,
-    "../../storage",
-    fileName
-  );
+  const filePath = resolveInStorage(fileName);
 
   fs.writeFileSync(filePath, content);
 
@@ -26,17 +36,8 @@ export const createFile = async (fileName, content = "") => {
 };
 
 export const renameFile = async (oldName, newName) => {
-  const oldPath = path.join(
-    import.meta.dirname,
-    "../../storage",
-    oldName
-  );
-
-  const newPath = path.join(
-    import.meta.dirname,
-    "../../storage",
-    newName
-  );
+  const oldPath = resolveInStorage(oldName);
+  const newPath = resolveInStorage(newName);
 
   fs.renameSync(oldPath, newPath);
 
@@ -44,11 +45,7 @@ export const renameFile = async (oldName, newName) => {
 };
 
 export const deleteFile = async (fileName) => {
-  const filePath = path.join(
-    import.meta.dirname,
-    "../../storage",
-    fileName
-  );
+  const filePath = resolveInStorage(fileName);
 
   fs.unlinkSync(filePath);
 
