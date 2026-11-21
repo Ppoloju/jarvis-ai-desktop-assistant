@@ -1,26 +1,35 @@
 import { exec } from "child_process";
+import fs from "fs";
 import screenshot from "screenshot-desktop";
 import path from "path";
 import open from "open";
 
+const screenshotsDir = path.join(import.meta.dirname, "../../screenshots");
+
 export const launchWebsite = async (url) => {
-  console.log("SERVICE CALLED:", url);
+  if (!url) {
+    throw new Error("A url is required");
+  }
 
   await open(url);
-
-  console.log("OPEN FINISHED");
 };
 
 export const launchApp = async (app) => {
+  if (!app) {
+    throw new Error("An app name is required");
+  }
+
+  const isWindows = process.platform === "win32";
+
   switch (app.toLowerCase()) {
     case "chrome":
-      exec('start chrome');
+      exec(isWindows ? "start chrome" : "open -a 'Google Chrome'");
       break;
     case "vscode":
-      exec('code');
+      exec("code");
       break;
     case "calculator":
-      exec('calc');
+      exec(isWindows ? "calc" : "open -a Calculator");
       break;
     default:
       throw new Error(`Unsupported app: ${app}`);
@@ -28,16 +37,12 @@ export const launchApp = async (app) => {
 };
 
 export const takeScreenshot = async () => {
+  fs.mkdirSync(screenshotsDir, { recursive: true });
+
   const fileName = `screenshot-${Date.now()}.png`;
 
-  const filePath = path.join(
-    import.meta.dirname,
-    "../../screenshots",
-    fileName
-  );
-
   await screenshot({
-    filename: filePath,
+    filename: path.join(screenshotsDir, fileName),
   });
 
   return fileName;
