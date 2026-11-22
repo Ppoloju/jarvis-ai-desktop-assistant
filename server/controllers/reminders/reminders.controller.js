@@ -1,39 +1,25 @@
 import * as remindersService from "../../services/reminders/reminders.service.js";
 
 export const createReminder = (req, res) => {
-  try {
-    const { text } = req.body;
+  const { text } = req.body ?? {};
 
-    const reminder =
-      remindersService.addReminder(text);
+  const reminder = remindersService.addReminder(text);
 
-    res.json({
-      success: true,
-      reminder,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
+  res.status(201).json({
+    success: true,
+    reminder,
+  });
 };
 
 export const getReminders = (req, res) => {
-  res.json(remindersService.getReminders());
+  res.json({ success: true, reminders: remindersService.getReminders() });
 };
 
 export const deleteReminder = (req, res) => {
-  try {
-    remindersService.deleteReminder(req.params.id);
+  const removed = remindersService.deleteReminder(req.params.id);
 
-    res.json({
-      success: true,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
+  res.json({
+    success: true,
+    reminder: removed,
+  });
 };
