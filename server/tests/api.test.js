@@ -33,8 +33,10 @@ test.after(() => {
 
 test("serves the health message", async () => {
   const response = await call("/");
+  const body = await response.text();
 
   assert.equal(response.status, 200);
+  assert.equal(body, "Jarvis API is running.");
 });
 
 test("returns system info", async () => {

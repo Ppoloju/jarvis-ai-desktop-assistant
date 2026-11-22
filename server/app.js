@@ -48,7 +48,7 @@ app.use("/api/files", fileRoutes);
 app.use("/api/reminders", reminderRoutes);
 
 app.get("/", (req, res) => {
-  res.send("Server is running 🚀");
+  res.type("text/plain").send("Jarvis API is running.");
 });
 
 app.post("/api/chat", async (req, res) => {
