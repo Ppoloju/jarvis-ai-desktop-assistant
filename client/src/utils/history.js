@@ -1,10 +1,12 @@
 const STORAGE_KEY = "jarvis-chat-history";
 const MAX_ENTRIES = 50;
+const CHANGE_EVENT = "jarvis:history-changed";
 
 export const getChatHistory = () => {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? JSON.parse(saved) : [];
+    const parsed = saved ? JSON.parse(saved) : [];
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
@@ -12,11 +14,23 @@ export const getChatHistory = () => {
 
 export const saveChatHistory = (chat) => {
   try {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(chat.slice(-MAX_ENTRIES))
-    );
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(chat.slice(-MAX_ENTRIES)));
   } catch {
-    // storage unavailable or full, history stays in memory
+    // storage unavailable or full; the conversation stays in memory
   }
+};
+
+export const clearChatHistory = () => {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // ignore
+  }
+
+  window.dispatchEvent(new Event(CHANGE_EVENT));
+};
+
+export const onChatHistoryCleared = (handler) => {
+  window.addEventListener(CHANGE_EVENT, handler);
+  return () => window.removeEventListener(CHANGE_EVENT, handler);
 };
