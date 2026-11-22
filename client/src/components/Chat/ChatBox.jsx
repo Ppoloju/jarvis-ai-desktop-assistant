@@ -1,91 +1,183 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { sendMessage } from "../../services/api";
-import { getChatHistory, saveChatHistory } from "../../utils/history";
+import {
+  getChatHistory,
+  saveChatHistory,
+  clearChatHistory,
+  onChatHistoryCleared,
+} from "../../utils/history";
+import { Alert, Button } from "../ui";
+import { Icon } from "../ui/Icons";
+
+const SUGGESTIONS = [
+  "what time is it",
+  "system info",
+  "remind me to stretch",
+  "list files",
+  "what can you do",
+];
 
 export default function ChatBox() {
   const [message, setMessage] = useState("");
   const [chat, setChat] = useState(() => getChatHistory());
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const bottomRef = useRef(null);
+  const inputRef = useRef(null);
 
   useEffect(() => {
     saveChatHistory(chat);
   }, [chat]);
 
-  const handleSendMessage = async () => {
-    const text = message.trim();
+  useEffect(() => onChatHistoryCleared(() => setChat([])), []);
 
-    if (!text || isLoading) return;
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [chat, isLoading]);
+
+  const send = async (text) => {
+    const trimmed = text.trim();
+
+    if (!trimmed || isLoading) return;
 
     setIsLoading(true);
+    setError("");
     setMessage("");
 
     try {
-      const data = await sendMessage(text);
-      setChat((prev) => [...prev, { user: text, bot: data.reply }]);
-    } catch (error) {
-      console.error("Error sending message:", error);
+      const data = await sendMessage(trimmed);
+      setChat((prev) => [...prev, { user: trimmed, bot: data.reply }]);
+    } catch (err) {
+      setError(err.message);
       setChat((prev) => [
         ...prev,
-        { user: text, bot: "Sorry, something went wrong." },
+        { user: trimmed, bot: `I could not reach the local API (${err.message}).` },
       ]);
     } finally {
       setIsLoading(false);
+      inputRef.current?.focus();
     }
   };
 
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    send(message);
+  };
+
+  const handleKeyDown = (event) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      send(message);
     }
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-lg p-6">
-      <h2 className="text-2xl font-bold text-gray-800 mb-6">💬 Chat with Jarvis</h2>
+    <section className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <header className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
+        <div className="flex items-center gap-3">
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+            <Icon name="sparkles" className="h-4 w-4" />
+          </span>
+          <div>
+            <h2 className="text-sm font-semibold text-slate-900">Assistant</h2>
+            <p className="text-xs text-slate-500">Local responses, no API key required</p>
+          </div>
+        </div>
+        {chat.length > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            icon="trash"
+            onClick={() => {
+              clearChatHistory();
+              setChat([]);
+            }}
+          >
+            Clear
+          </Button>
+        )}
+      </header>
 
-      <div className="space-y-4 mb-6 max-h-96 overflow-y-auto">
+      <div className="flex-1 space-y-4 overflow-y-auto px-5 py-5" style={{ maxHeight: "26rem" }}>
         {chat.length === 0 ? (
-          <div className="text-center text-gray-500 py-8">
-            <p className="text-lg">Start a conversation with Jarvis!</p>
-            <p className="text-sm mt-2">Ask me anything about automation, files, or system info.</p>
+          <div className="py-6 text-center">
+            <p className="text-sm font-medium text-slate-900">Start a conversation</p>
+            <p className="mx-auto mt-1 max-w-sm text-sm text-slate-500">
+              Ask about the time, your system, reminders, files, or open an app.
+            </p>
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              {SUGGESTIONS.map((suggestion) => (
+                <button
+                  key={suggestion}
+                  type="button"
+                  onClick={() => send(suggestion)}
+                  className="rounded-full border border-slate-200 px-3 py-1.5 text-xs text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
           </div>
         ) : (
-          chat.map((c, i) => (
-            <div key={i} className="space-y-2">
-              <div className="flex justify-end">
-                <div className="bg-purple-600 text-white px-4 py-2 rounded-lg max-w-md">
-                  {c.user}
+          chat.map((entry, index) => (
+            <div key={index} className="space-y-3">
+              <div className="flex justify-end gap-2">
+                <div className="max-w-[80%] rounded-2xl rounded-tr-sm bg-indigo-600 px-4 py-2.5 text-sm text-white">
+                  {entry.user}
                 </div>
               </div>
-              <div className="flex justify-start">
-                <div className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg max-w-md">
-                  {c.bot}
+              <div className="flex items-start gap-2">
+                <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500">
+                  <Icon name="sparkles" className="h-3.5 w-3.5" />
+                </span>
+                <div className="max-w-[80%] whitespace-pre-line rounded-2xl rounded-tl-sm bg-slate-100 px-4 py-2.5 text-sm text-slate-800">
+                  {entry.bot}
                 </div>
               </div>
             </div>
           ))
         )}
+
+        {isLoading && (
+          <div className="flex items-center gap-2 text-xs text-slate-500">
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100">
+              <Icon name="sparkles" className="h-3.5 w-3.5" />
+            </span>
+            <span className="flex gap-1">
+              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-400 [animation-delay:-0.2s]" />
+              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-400 [animation-delay:-0.1s]" />
+              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-400" />
+            </span>
+          </div>
+        )}
+
+        <div ref={bottomRef} />
       </div>
 
-      <div className="flex space-x-3">
-        <input
-          type="text"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Type your message..."
-          className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-          disabled={isLoading}
-        />
-        <button
-          onClick={handleSendMessage}
-          disabled={isLoading || !message.trim()}
-          className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-        >
-          {isLoading ? "Sending..." : "Send"}
-        </button>
+      <div className="border-t border-slate-100 px-5 py-4">
+        {error && (
+          <div className="mb-3">
+            <Alert tone="error">
+              The local API did not respond: {error}. Check that the server is running.
+            </Alert>
+          </div>
+        )}
+        <form onSubmit={handleSubmit} className="flex gap-2">
+          <input
+            ref={inputRef}
+            type="text"
+            value={message}
+            onChange={(event) => setMessage(event.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Ask Jarvis anything..."
+            className="flex-1 rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+            disabled={isLoading}
+          />
+          <Button type="submit" icon="send" disabled={isLoading || !message.trim()}>
+            Send
+          </Button>
+        </form>
       </div>
-    </div>
+    </section>
   );
 }

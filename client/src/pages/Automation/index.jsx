@@ -1,115 +1,140 @@
 import { useState } from "react";
-import { openWebsite, openApp, captureScreenshot } from "../../services/api";
+import { openWebsite, openApp, captureScreenshot, assetUrl } from "../../services/api";
+import { Alert, Button, Card, Input, PageHeader } from "../../components/ui";
+import { Icon } from "../../components/ui/Icons";
+
+const APPS = [
+  { name: "chrome", label: "Chrome", icon: "globe" },
+  { name: "vscode", label: "VS Code", icon: "file" },
+  { name: "calculator", label: "Calculator", icon: "app" },
+];
 
 export default function Automation() {
   const [url, setUrl] = useState("");
-  const [app, setApp] = useState("");
-  const [screenshotResult, setScreenshotResult] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [screenshot, setScreenshot] = useState(null);
+  const [status, setStatus] = useState(null);
+  const [busy, setBusy] = useState("");
 
-  const handleOpenWebsite = async () => {
-    if (!url.trim()) return;
-    setIsLoading(true);
+  const run = async (key, action) => {
+    setBusy(key);
+    setStatus(null);
+
     try {
-      const result = await openWebsite(url);
-      alert(result.message);
-      setUrl("");
+      const result = await action();
+      setStatus({ tone: "success", text: result.message || "Done" });
+      return result;
     } catch (error) {
-      console.error("Error opening website:", error);
-      alert("Failed to open website");
+      setStatus({ tone: "error", text: error.message });
+      return null;
+    } finally {
+      setBusy("");
     }
-    setIsLoading(false);
   };
 
-  const handleOpenApp = async () => {
-    if (!app.trim()) return;
-    setIsLoading(true);
-    try {
-      const result = await openApp(app);
-      alert(result.message);
-      setApp("");
-    } catch (error) {
-      console.error("Error opening app:", error);
-      alert("Failed to open app");
+  const handleWebsite = async (event) => {
+    event.preventDefault();
+
+    if (await run("website", () => openWebsite(url))) {
+      setUrl("");
     }
-    setIsLoading(false);
   };
 
   const handleScreenshot = async () => {
-    setIsLoading(true);
-    try {
-      const result = await captureScreenshot();
-      setScreenshotResult(result);
-      alert(`Screenshot saved: ${result.file}`);
-    } catch (error) {
-      console.error("Error taking screenshot:", error);
-      alert("Failed to take screenshot");
+    const result = await run("screenshot", captureScreenshot);
+
+    if (result) {
+      setScreenshot(result);
     }
-    setIsLoading(false);
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold text-gray-800 mb-8">⚡ Automation</h1>
+    <>
+      <PageHeader
+        title="Automation"
+        description="Launch websites and apps, or capture what is on your screen."
+      />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Open Website */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">🌐 Open Website</h2>
-          <div className="space-y-3">
-            <input
-              type="text"
+      {status && (
+        <div className="mb-5">
+          <Alert tone={status.tone}>{status.text}</Alert>
+        </div>
+      )}
+
+      <div className="grid gap-5 lg:grid-cols-2">
+        <Card title="Open a website" description="http and https addresses only">
+          <form onSubmit={handleWebsite} className="space-y-3">
+            <Input
+              label="Address"
               value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="Enter URL (e.g., https://google.com)"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              onChange={(event) => setUrl(event.target.value)}
+              placeholder="google.com"
+              inputMode="url"
             />
-            <button
-              onClick={handleOpenWebsite}
-              disabled={isLoading || !url.trim()}
-              className="w-full px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+            <Button
+              type="submit"
+              icon="globe"
+              loading={busy === "website"}
+              disabled={busy !== "" || !url.trim()}
+              className="w-full"
             >
-              {isLoading ? "Opening..." : "Open Website"}
-            </button>
-          </div>
-        </div>
+              Open website
+            </Button>
+          </form>
+        </Card>
 
-        {/* Open App */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">📱 Open Application</h2>
-          <div className="space-y-3">
-            <input
-              type="text"
-              value={app}
-              onChange={(e) => setApp(e.target.value)}
-              placeholder="Enter app name (chrome, vscode, calculator)"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+        <Card title="Launch an application" description="Starts an app on this computer">
+          <div className="grid gap-2 sm:grid-cols-3">
+            {APPS.map((app) => (
+              <button
+                key={app.name}
+                type="button"
+                onClick={() => run(app.name, () => openApp(app.name))}
+                disabled={busy !== ""}
+                className="flex flex-col items-center gap-2 rounded-lg border border-slate-200 px-3 py-4 text-sm font-medium text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 disabled:opacity-50"
+              >
+                <Icon name={app.icon} className="h-5 w-5" />
+                {app.label}
+              </button>
+            ))}
+          </div>
+        </Card>
+
+        <Card
+          title="Capture screen"
+          description="Saves a PNG to your screenshots folder"
+          className="lg:col-span-2"
+        >
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              icon="camera"
+              onClick={handleScreenshot}
+              loading={busy === "screenshot"}
+              disabled={busy !== ""}
+            >
+              Take screenshot
+            </Button>
+            {screenshot && (
+              <a
+                href={assetUrl(screenshot.url)}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700"
+              >
+                Open full size
+                <Icon name="arrow" className="h-4 w-4" />
+              </a>
+            )}
+          </div>
+
+          {screenshot && (
+            <img
+              src={assetUrl(screenshot.url)}
+              alt="Captured desktop screenshot"
+              className="mt-4 w-full rounded-lg border border-slate-200"
             />
-            <button
-              onClick={handleOpenApp}
-              disabled={isLoading || !app.trim()}
-              className="w-full px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-            >
-              {isLoading ? "Opening..." : "Open App"}
-            </button>
-          </div>
-        </div>
-
-        {/* Screenshot */}
-        <div className="bg-white rounded-xl shadow-lg p-6 md:col-span-2">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">📸 Capture Screenshot</h2>
-          <button
-            onClick={handleScreenshot}
-            disabled={isLoading}
-            className="w-full px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-          >
-            {isLoading ? "Capturing..." : "Take Screenshot"}
-          </button>
-          {screenshotResult && (
-            <p className="mt-3 text-green-600">✓ Screenshot saved successfully</p>
           )}
-        </div>
+        </Card>
       </div>
-    </div>
+    </>
   );
 }

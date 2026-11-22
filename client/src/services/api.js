@@ -1,13 +1,17 @@
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
+const API_BASE = import.meta.env.VITE_API_BASE ?? "";
 
 const request = async (path, options) => {
   const response = await fetch(`${API_BASE}${path}`, options);
+  const isJson = (response.headers.get("content-type") || "").includes(
+    "application/json"
+  );
+  const data = isJson ? await response.json() : null;
 
   if (!response.ok) {
-    throw new Error(`Request failed with status ${response.status}`);
+    throw new Error(data?.message || `Request failed (${response.status})`);
   }
 
-  return response.json();
+  return data;
 };
 
 const jsonOptions = (method, body) => ({
@@ -15,6 +19,8 @@ const jsonOptions = (method, body) => ({
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify(body),
 });
+
+export const assetUrl = (path) => `${API_BASE}${path}`;
 
 // Chat API
 export const sendMessage = async (message) =>
@@ -34,6 +40,8 @@ export const captureScreenshot = async () =>
 export const getSystemInfo = async () => request("/api/system/info");
 
 // Files API
+export const listFiles = async () => request("/api/files");
+
 export const createFolder = async (folderName) =>
   request("/api/files/create-folder", jsonOptions("POST", { folderName }));
 

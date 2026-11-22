@@ -1,88 +1,51 @@
 import * as filesService from "../../services/files/files.service.js";
 
+export const listFiles = async (req, res) => {
+  const entries = await filesService.listFiles();
+
+  res.json({ success: true, entries });
+};
+
 export const createFolder = async (req, res) => {
-  try {
-    const { folderName } = req.body;
+  const { folderName } = req.body ?? {};
 
-    const folderPath = await filesService.createFolder(folderName);
+  const folderPath = await filesService.createFolder(folderName);
 
-    res.json({
-      success: true,
-      path: folderPath,
-    });
-  } catch (error) {
-    console.error(error);
-
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
+  res.status(201).json({
+    success: true,
+    path: folderPath,
+  });
 };
 
 export const createFile = async (req, res) => {
-  try {
-    const { fileName, content } = req.body;
+  const { fileName, content } = req.body ?? {};
 
-    const filePath = await filesService.createFile(
-      fileName,
-      content
-    );
+  const filePath = await filesService.createFile(fileName, content);
 
-    res.json({
-      success: true,
-      path: filePath,
-    });
-  } catch (error) {
-    console.error(error);
-
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
+  res.status(201).json({
+    success: true,
+    path: filePath,
+  });
 };
 
 export const renameFile = async (req, res) => {
-    console.log("BODY:", req.body);
-  try {
-    const { oldName, newName } = req.body;
+  const { oldName, newName } = req.body ?? {};
 
-    const newPath = await filesService.renameFile(
-      oldName,
-      newName
-    );
+  const newPath = await filesService.renameFile(oldName, newName);
 
-    res.json({
-      success: true,
-      path: newPath,
-    });
-  } catch (error) {
-    console.error(error);
-
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
+  res.json({
+    success: true,
+    path: newPath,
+  });
 };
 
 export const deleteFile = async (req, res) => {
-  try {
-    const { fileName } = req.body;
+  const { fileName } = req.body ?? {};
 
-    await filesService.deleteFile(fileName);
+  await filesService.deleteFile(fileName);
 
-    res.json({
-      success: true,
-      message: `${fileName} deleted`,
-    });
-  } catch (error) {
-    console.error(error);
-
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
+  res.json({
+    success: true,
+    message: `${fileName} deleted`,
+  });
 };
