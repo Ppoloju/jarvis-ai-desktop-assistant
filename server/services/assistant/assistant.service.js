@@ -40,7 +40,7 @@ const listFilesReply = async () => {
 
   const lines = entries
     .slice(0, 15)
-    .map((entry) => `- ${entry.type === "folder" ? "📁" : "📄"} ${entry.name}`)
+    .map((entry) => `- ${entry.type === "folder" ? "Folder:" : "File:"} ${entry.name}`)
     .join("\n");
 
   const extra = entries.length > 15 ? `\n...and ${entries.length - 15} more.` : "";

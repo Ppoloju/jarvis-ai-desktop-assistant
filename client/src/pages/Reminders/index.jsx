@@ -96,7 +96,7 @@ export default function Reminders() {
           <EmptyState
             icon="bell"
             title="No reminders yet"
-            description="Add one above, or tell the assistant: “remind me to call Sam”."
+            description="Add one above, or tell the assistant to remind you to call Sam."
           />
         ) : (
           <ul className="divide-y divide-slate-100">
