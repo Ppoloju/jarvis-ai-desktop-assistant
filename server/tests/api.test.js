@@ -39,6 +39,17 @@ test("serves the health message", async () => {
   assert.equal(body, "Jarvis API is running.");
 });
 
+test("serves screenshots from the configured data directory", async () => {
+  const screenshotsDir = path.join(process.env.JARVIS_DATA_DIR, "screenshots");
+  fs.mkdirSync(screenshotsDir, { recursive: true });
+  fs.writeFileSync(path.join(screenshotsDir, "test.png"), "test-image");
+
+  const response = await call("/screenshots/test.png");
+
+  assert.equal(response.status, 200);
+  assert.equal(await response.text(), "test-image");
+});
+
 test("returns system info", async () => {
   const response = await call("/api/system/info");
   const body = await response.json();
