@@ -11,6 +11,8 @@ import * as assistant from "./services/assistant/assistant.service.js";
 import { assert } from "./utils/http.js";
 
 const app = express();
+const dataDir = process.env.JARVIS_DATA_DIR || import.meta.dirname;
+const screenshotsDir = path.join(dataDir, "screenshots");
 
 const allowedOrigins = (
   process.env.CORS_ORIGINS ||
@@ -39,7 +41,7 @@ app.use(logger);
 
 app.use(
   "/screenshots",
-  express.static(path.join(import.meta.dirname, "screenshots"))
+  express.static(screenshotsDir)
 );
 
 app.use("/api/automation", automationRoutes);
