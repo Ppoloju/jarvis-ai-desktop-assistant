@@ -2,13 +2,16 @@ import { useEffect, useState } from "react";
 import { Icon } from "./Icons";
 
 const buttonBase =
-  "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed";
 
 const buttonVariants = {
-  primary: "bg-indigo-600 text-white shadow-sm hover:bg-indigo-700",
-  secondary: "border border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-50",
-  ghost: "text-slate-600 hover:bg-slate-100",
-  danger: "border border-red-200 bg-white text-red-600 hover:bg-red-50",
+  primary:
+    "bg-indigo-600 text-white shadow-sm hover:bg-indigo-700 disabled:bg-slate-200 disabled:text-slate-500 disabled:shadow-none",
+  secondary:
+    "border border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-50 disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400 disabled:shadow-none",
+  ghost: "text-slate-600 hover:bg-slate-100 disabled:opacity-50",
+  danger:
+    "border border-red-200 bg-white text-red-600 hover:bg-red-50 disabled:border-slate-200 disabled:bg-white disabled:text-slate-400",
 };
 
 const buttonSizes = {
