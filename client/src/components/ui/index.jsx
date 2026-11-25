@@ -54,8 +54,10 @@ export function ConfirmButton({
   onConfirm,
   children = "Delete",
   confirmLabel = "Confirm delete",
+  confirmAriaLabel,
   timeout = 4000,
   className = "",
+  "aria-label": ariaLabel,
   ...props
 }) {
   const [confirming, setConfirming] = useState(false);
@@ -72,6 +74,7 @@ export function ConfirmButton({
     <Button
       variant="ghost"
       size="sm"
+      aria-label={confirming ? confirmAriaLabel || confirmLabel : ariaLabel}
       icon={confirming ? "alert" : "trash"}
       className={`${confirming ? "bg-red-50 text-red-700" : "text-red-600 hover:bg-red-50"} ${className}`}
       onClick={() => {
@@ -92,7 +95,7 @@ export function ConfirmButton({
 
 export function Card({ title, description, action, children, className = "" }) {
   return (
-    <section className={`rounded-xl border border-slate-200 bg-white shadow-sm ${className}`}>
+    <section className={`flex flex-col rounded-xl border border-slate-200 bg-white shadow-sm ${className}`}>
       {(title || action) && (
         <header className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4">
           <div>
@@ -104,7 +107,7 @@ export function Card({ title, description, action, children, className = "" }) {
           {action}
         </header>
       )}
-      <div className="px-5 py-4">{children}</div>
+      <div className="flex-1 px-5 py-4">{children}</div>
     </section>
   );
 }

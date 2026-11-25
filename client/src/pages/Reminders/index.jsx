@@ -134,7 +134,8 @@ export default function Reminders() {
                 </div>
                 <ConfirmButton
                   aria-label={`Delete reminder: ${reminder.text}`}
-                  confirmLabel="Confirm"
+                  confirmLabel="Confirm delete"
+                  confirmAriaLabel={`Confirm delete: ${reminder.text}`}
                   disabled={busy}
                   onConfirm={() => handleDelete(reminder.id)}
                 >
