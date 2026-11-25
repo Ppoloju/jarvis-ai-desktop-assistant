@@ -16,6 +16,7 @@ const MAX_SCREENSHOTS = 20;
 const LAUNCH_TIMEOUT_MS = 10000;
 
 const SUPPORTED_APPS = new Set(["chrome", "vscode", "calculator"]);
+const APP_LABELS = { chrome: "Chrome", vscode: "VS Code", calculator: "Calculator" };
 const NO_DISPLAY = "Screenshots are not available here: no desktop display was found";
 
 const hasDesktop = () => process.platform !== "linux" || Boolean(process.env.DISPLAY);
@@ -99,10 +100,10 @@ export const launchApp = async (app) => {
   try {
     await execAsync(commands[name], { timeout: LAUNCH_TIMEOUT_MS });
   } catch {
-    throw httpError(503, `Could not launch ${name} on this computer`);
+    throw httpError(503, `Could not launch ${APP_LABELS[name]} on this computer`);
   }
 
-  return name;
+  return APP_LABELS[name];
 };
 
 export const takeScreenshot = async () => {
