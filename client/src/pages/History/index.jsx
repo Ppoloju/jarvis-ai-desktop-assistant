@@ -5,6 +5,7 @@ import {
   onChatHistoryCleared,
 } from "../../utils/history";
 import { Button, Card, EmptyState, PageHeader } from "../../components/ui";
+import { pluralize } from "../../utils/format";
 import { Icon } from "../../components/ui/Icons";
 
 export default function History() {
@@ -45,7 +46,7 @@ export default function History() {
         }
       />
 
-      <Card title="Conversations" description={`${chat.length} message(s) stored`}>
+      <Card title="Conversations" description={`${pluralize(chat.length, "message")} stored`}>
         {chat.length === 0 ? (
           <EmptyState
             icon="history"

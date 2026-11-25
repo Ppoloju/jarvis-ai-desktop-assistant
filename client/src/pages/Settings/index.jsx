@@ -1,7 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import API_BASE from "../../services/api";
-import { getChatHistory, clearChatHistory } from "../../utils/history";
+import {
+  getChatHistory,
+  clearChatHistory,
+  onChatHistoryCleared,
+} from "../../utils/history";
 import { Alert, Button, Card, PageHeader } from "../../components/ui";
+import { pluralize } from "../../utils/format";
 
 const rows = [
   ["Application", "Jarvis AI Desktop Assistant"],
@@ -14,6 +19,20 @@ const rows = [
 export default function Settings() {
   const [stored, setStored] = useState(() => getChatHistory().length);
   const [cleared, setCleared] = useState(false);
+
+  useEffect(() => {
+    const sync = () => setStored(getChatHistory().length);
+
+    const unsubscribe = onChatHistoryCleared(sync);
+    window.addEventListener("focus", sync);
+    document.addEventListener("visibilitychange", sync);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener("focus", sync);
+      document.removeEventListener("visibilitychange", sync);
+    };
+  }, []);
 
   return (
     <>
@@ -37,7 +56,9 @@ export default function Settings() {
         >
           {cleared && (
             <div className="mb-3">
-              <Alert tone="success">Conversation history cleared.</Alert>
+              <Alert tone="success" onDismiss={() => setCleared(false)}>
+                Conversation history cleared.
+              </Alert>
             </div>
           )}
 
@@ -45,7 +66,7 @@ export default function Settings() {
             <p className="text-sm text-slate-600">
               {stored === 0
                 ? "There are no saved messages."
-                : `${stored} saved message(s) in this browser.`}
+                : `${pluralize(stored, "saved message")} in this browser.`}
             </p>
             <Button
               variant="danger"

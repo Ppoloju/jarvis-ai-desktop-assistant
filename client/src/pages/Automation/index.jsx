@@ -56,7 +56,9 @@ export default function Automation() {
 
       {status && (
         <div className="mb-5">
-          <Alert tone={status.tone}>{status.text}</Alert>
+          <Alert tone={status.tone} onDismiss={() => setStatus(null)}>
+            {status.text}
+          </Alert>
         </div>
       )}
 
@@ -69,6 +71,7 @@ export default function Automation() {
               onChange={(event) => setUrl(event.target.value)}
               placeholder="google.com"
               inputMode="url"
+              disabled={busy !== ""}
             />
             <Button
               type="submit"
@@ -90,7 +93,8 @@ export default function Automation() {
                 type="button"
                 onClick={() => run(app.name, () => openApp(app.name))}
                 disabled={busy !== ""}
-                className="flex flex-col items-center gap-2 rounded-lg border border-slate-200 px-3 py-4 text-sm font-medium text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 disabled:opacity-50"
+                aria-label={`Launch ${app.label}`}
+                className="flex flex-col items-center gap-2 rounded-lg border border-slate-200 px-3 py-4 text-sm font-medium text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Icon name={app.icon} className="h-5 w-5" />
                 {app.label}
@@ -126,12 +130,20 @@ export default function Automation() {
             )}
           </div>
 
-          {screenshot && (
+          {screenshot ? (
             <img
               src={assetUrl(screenshot.url)}
               alt="Captured desktop screenshot"
-              className="mt-4 w-full rounded-lg border border-slate-200"
+              loading="lazy"
+              className="mt-4 w-full rounded-lg border border-slate-200 shadow-sm"
             />
+          ) : (
+            <div className="mt-4 flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-slate-200 bg-slate-50/60 px-4 py-10 text-center">
+              <Icon name="camera" className="h-5 w-5 text-slate-400" />
+              <p className="text-sm text-slate-500">
+                No screenshot captured yet. The latest capture will appear here.
+              </p>
+            </div>
           )}
         </Card>
       </div>
