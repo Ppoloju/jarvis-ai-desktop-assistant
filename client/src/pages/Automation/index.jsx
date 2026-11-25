@@ -15,13 +15,13 @@ export default function Automation() {
   const [status, setStatus] = useState(null);
   const [busy, setBusy] = useState("");
 
-  const run = async (key, action) => {
+  const run = async (key, action, successText) => {
     setBusy(key);
     setStatus(null);
 
     try {
       const result = await action();
-      setStatus({ tone: "success", text: result.message || "Done" });
+      setStatus({ tone: "success", text: successText || result.message || "Done" });
       return result;
     } catch (error) {
       setStatus({ tone: "error", text: error.message });
@@ -40,7 +40,11 @@ export default function Automation() {
   };
 
   const handleScreenshot = async () => {
-    const result = await run("screenshot", captureScreenshot);
+    const result = await run(
+      "screenshot",
+      captureScreenshot,
+      "Screenshot saved to the screenshots folder"
+    );
 
     if (result) {
       setScreenshot(result);
