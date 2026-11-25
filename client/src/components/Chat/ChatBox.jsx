@@ -22,7 +22,7 @@ export default function ChatBox() {
   const [chat, setChat] = useState(() => getChatHistory());
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const bottomRef = useRef(null);
+  const listRef = useRef(null);
   const inputRef = useRef(null);
 
   useEffect(() => {
@@ -32,11 +32,13 @@ export default function ChatBox() {
   useEffect(() => onChatHistoryCleared(() => setChat([])), []);
 
   useEffect(() => {
-    inputRef.current?.focus();
+    inputRef.current?.focus({ preventScroll: true });
   }, []);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    const list = listRef.current;
+
+    if (list) list.scrollTop = list.scrollHeight;
   }, [chat, isLoading]);
 
   const send = async (text) => {
@@ -55,7 +57,7 @@ export default function ChatBox() {
       setError(err.message);
     } finally {
       setIsLoading(false);
-      inputRef.current?.focus();
+      inputRef.current?.focus({ preventScroll: true });
     }
   };
 
@@ -100,6 +102,7 @@ export default function ChatBox() {
       </header>
 
       <div
+        ref={listRef}
         role="log"
         aria-live="polite"
         aria-label="Conversation"
@@ -158,8 +161,6 @@ export default function ChatBox() {
             </span>
           </div>
         )}
-
-        <div ref={bottomRef} />
       </div>
 
       <div className="border-t border-slate-100 px-5 py-4">
