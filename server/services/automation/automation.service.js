@@ -9,6 +9,7 @@ import { assert, httpError } from "../../utils/http.js";
 const execFileAsync = promisify(execFile);
 const execAsync = promisify(exec);
 const workerPath = path.join(import.meta.dirname, "../../utils/screenshot-worker.js");
+const windowsScriptPath = path.join(import.meta.dirname, "../../utils/screenshot-windows.ps1");
 
 const dataDir = process.env.JARVIS_DATA_DIR || path.join(import.meta.dirname, "../..");
 const screenshotsDir = path.join(dataDir, "screenshots");
@@ -113,7 +114,25 @@ export const takeScreenshot = async () => {
   const target = path.join(screenshotsDir, fileName);
 
   try {
-    await execFileAsync(process.execPath, [workerPath, target], { timeout: 15000 });
+    if (process.platform === "win32") {
+      await execFileAsync(
+        "powershell.exe",
+        [
+          "-NoProfile",
+          "-NonInteractive",
+          "-WindowStyle",
+          "Hidden",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          windowsScriptPath,
+          target,
+        ],
+        { timeout: 15000 }
+      );
+    } else {
+      await execFileAsync(process.execPath, [workerPath, target], { timeout: 15000 });
+    }
   } catch {
     throw httpError(503, NO_DISPLAY);
   }
