@@ -10,31 +10,19 @@ import {
   Alert,
   Button,
   Card,
+  ConfirmButton,
   EmptyState,
   Input,
   PageHeader,
   Textarea,
 } from "../../components/ui";
 import { Icon } from "../../components/ui/Icons";
-
-const formatSize = (bytes) => {
-  if (bytes === null || bytes === undefined) return "-";
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-};
-
-const formatDate = (iso) =>
-  new Date(iso).toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+import { formatDateTime, formatSize, pluralize } from "../../utils/format";
 
 export default function Files() {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [status, setStatus] = useState(null);
   const [busy, setBusy] = useState("");
   const [folderName, setFolderName] = useState("");
@@ -43,15 +31,9 @@ export default function Files() {
   const [oldName, setOldName] = useState("");
   const [newName, setNewName] = useState("");
 
-  const refresh = useCallback(async () => {
-    try {
-      const data = await listFiles();
-      setEntries(data.entries);
-    } catch (error) {
-      setStatus({ tone: "error", text: error.message });
-    } finally {
-      setLoading(false);
-    }
+  const load = useCallback(async () => {
+    const data = await listFiles();
+    setEntries(data.entries);
   }, []);
 
   useEffect(() => {
@@ -73,6 +55,19 @@ export default function Files() {
     };
   }, []);
 
+  const refresh = async () => {
+    setRefreshing(true);
+    setStatus(null);
+
+    try {
+      await load();
+    } catch (error) {
+      setStatus({ tone: "error", text: error.message });
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const run = async (key, action, successText) => {
     setBusy(key);
     setStatus(null);
@@ -80,7 +75,7 @@ export default function Files() {
     try {
       await action();
       setStatus({ tone: "success", text: successText });
-      await refresh();
+      await load();
       return true;
     } catch (error) {
       setStatus({ tone: "error", text: error.message });
@@ -122,7 +117,13 @@ export default function Files() {
         title="Files"
         description="Create, rename and remove items in the assistant's storage folder."
         action={
-          <Button variant="secondary" icon="refresh" onClick={refresh} loading={loading}>
+          <Button
+            variant="secondary"
+            icon="refresh"
+            onClick={refresh}
+            loading={refreshing}
+            aria-label="Refresh stored items"
+          >
             Refresh
           </Button>
         }
@@ -130,7 +131,9 @@ export default function Files() {
 
       {status && (
         <div className="mb-5">
-          <Alert tone={status.tone}>{status.text}</Alert>
+          <Alert tone={status.tone} onDismiss={() => setStatus(null)}>
+            {status.text}
+          </Alert>
         </div>
       )}
 
@@ -138,9 +141,11 @@ export default function Files() {
         <Card title="New folder">
           <form onSubmit={handleFolder} className="space-y-3">
             <Input
+              aria-label="New folder name"
               value={folderName}
               onChange={(event) => setFolderName(event.target.value)}
               placeholder="documents"
+              disabled={busy !== ""}
             />
             <Button
               type="submit"
@@ -158,15 +163,19 @@ export default function Files() {
         <Card title="New file">
           <form onSubmit={handleFile} className="space-y-3">
             <Input
+              aria-label="New file name"
               value={fileName}
               onChange={(event) => setFileName(event.target.value)}
               placeholder="notes/todo.txt"
+              disabled={busy !== ""}
             />
             <Textarea
+              aria-label="File contents"
               rows={2}
               value={content}
               onChange={(event) => setContent(event.target.value)}
               placeholder="Optional contents"
+              disabled={busy !== ""}
             />
             <Button
               type="submit"
@@ -184,14 +193,18 @@ export default function Files() {
         <Card title="Rename">
           <form onSubmit={handleRename} className="space-y-3">
             <Input
+              aria-label="Current name"
               value={oldName}
               onChange={(event) => setOldName(event.target.value)}
               placeholder="Current name"
+              disabled={busy !== ""}
             />
             <Input
+              aria-label="New name"
               value={newName}
               onChange={(event) => setNewName(event.target.value)}
               placeholder="New name"
+              disabled={busy !== ""}
             />
             <Button
               type="submit"
@@ -207,9 +220,14 @@ export default function Files() {
         </Card>
       </div>
 
-      <Card title="Storage" description={`${entries.length} item(s)`}>
+      <Card title="Storage" description={pluralize(entries.length, "item")}>
         {loading ? (
-          <p className="py-6 text-center text-sm text-slate-500">Loading storage...</p>
+          <div className="space-y-2 py-2" aria-live="polite">
+            {[0, 1, 2].map((key) => (
+              <div key={key} className="h-10 animate-pulse rounded-lg bg-slate-100" />
+            ))}
+            <span className="sr-only">Loading storage</span>
+          </div>
         ) : entries.length === 0 ? (
           <EmptyState
             icon="folder"
@@ -218,7 +236,7 @@ export default function Files() {
           />
         ) : (
           <div className="-mx-5 overflow-x-auto">
-            <table className="w-full min-w-[32rem] text-left text-sm">
+            <table className="w-full min-w-[32rem] text-left text-sm" aria-label="Stored items">
               <thead>
                 <tr className="border-b border-slate-100 text-xs uppercase tracking-wide text-slate-500">
                   <th className="px-5 py-2 font-medium">Name</th>
@@ -230,32 +248,33 @@ export default function Files() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {entries.map((entry) => (
-                  <tr key={entry.name} className="hover:bg-slate-50">
+                  <tr key={entry.name} className="transition hover:bg-slate-50">
                     <td className="px-5 py-3">
                       <span className="flex items-center gap-2 font-medium text-slate-800">
                         <Icon
                           name={entry.type === "folder" ? "folder" : "file"}
-                          className="h-4 w-4 text-slate-400"
+                          className={`h-4 w-4 ${
+                            entry.type === "folder" ? "text-amber-500" : "text-indigo-500"
+                          }`}
                         />
                         {entry.name}
                       </span>
                     </td>
                     <td className="px-3 py-3 capitalize text-slate-500">{entry.type}</td>
-                    <td className="px-3 py-3 text-slate-500">{formatSize(entry.size)}</td>
-                    <td className="px-3 py-3 text-slate-500">{formatDate(entry.modified)}</td>
+                    <td className="px-3 py-3 tabular-nums text-slate-500">
+                      {formatSize(entry.size)}
+                    </td>
+                    <td className="px-3 py-3 text-slate-500">{formatDateTime(entry.modified)}</td>
                     <td className="px-5 py-3 text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        icon="trash"
-                        className="text-red-600 hover:bg-red-50"
+                      <ConfirmButton
+                        aria-label={`Delete ${entry.name}`}
                         disabled={busy !== ""}
-                        onClick={() =>
+                        onConfirm={() =>
                           run("delete", () => deleteFile(entry.name), `Deleted ${entry.name}`)
                         }
                       >
                         Delete
-                      </Button>
+                      </ConfirmButton>
                     </td>
                   </tr>
                 ))}
