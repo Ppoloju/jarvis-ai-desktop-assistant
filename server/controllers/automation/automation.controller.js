@@ -14,11 +14,11 @@ export const openWebsite = async (req, res) => {
 export const openApp = async (req, res) => {
   const { app } = req.body ?? {};
 
-  await automationService.launchApp(app);
+  const appName = await automationService.launchApp(app);
 
   res.json({
     success: true,
-    message: `Opened ${app}`,
+    message: `Opened ${appName}`,
   });
 };
 

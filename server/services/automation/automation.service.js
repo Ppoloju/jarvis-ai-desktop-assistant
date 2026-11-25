@@ -7,11 +7,13 @@ import open from "open";
 import { assert, httpError } from "../../utils/http.js";
 
 const execFileAsync = promisify(execFile);
+const execAsync = promisify(exec);
 const workerPath = path.join(import.meta.dirname, "../../utils/screenshot-worker.js");
 
 const dataDir = process.env.JARVIS_DATA_DIR || path.join(import.meta.dirname, "../..");
 const screenshotsDir = path.join(dataDir, "screenshots");
 const MAX_SCREENSHOTS = 20;
+const LAUNCH_TIMEOUT_MS = 10000;
 
 const SUPPORTED_APPS = new Set(["chrome", "vscode", "calculator"]);
 const NO_DISPLAY = "Screenshots are not available here: no desktop display was found";
@@ -94,11 +96,13 @@ export const launchApp = async (app) => {
     calculator: isWindows ? "calc" : "open -a Calculator",
   };
 
-  exec(commands[name], (error) => {
-    if (error) {
-      console.error(`Failed to launch ${name}:`, error.message);
-    }
-  });
+  try {
+    await execAsync(commands[name], { timeout: LAUNCH_TIMEOUT_MS });
+  } catch {
+    throw httpError(503, `Could not launch ${name} on this computer`);
+  }
+
+  return name;
 };
 
 export const takeScreenshot = async () => {
