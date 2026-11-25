@@ -86,7 +86,7 @@ export default function Automation() {
         </Card>
 
         <Card title="Launch an application" description="Starts an app on this computer">
-          <div className="grid gap-2 sm:grid-cols-3">
+          <div className="grid grid-cols-3 gap-2">
             {APPS.map((app) => (
               <button
                 key={app.name}

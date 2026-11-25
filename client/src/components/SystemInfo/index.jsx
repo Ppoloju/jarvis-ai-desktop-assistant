@@ -33,7 +33,7 @@ export default function SystemInfo() {
 
   if (!info) {
     return (
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         {[0, 1, 2, 3].map((key) => (
           <div key={key} className="h-24 animate-pulse rounded-xl border border-slate-200 bg-white" />
         ))}
@@ -42,9 +42,9 @@ export default function SystemInfo() {
   }
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
       <Stat icon="app" label="Platform" value={info.platform} hint="Local runtime" />
-      <Stat icon="cpu" label="CPU cores" value={info.cpuCount} hint="Available to the assistant" />
+      <Stat icon="cpu" label="CPU cores" value={info.cpuCount} hint="Available" />
       <Stat
         icon="shield"
         label="Memory"
