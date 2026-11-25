@@ -20,6 +20,8 @@ const resolveInStorage = (name) => {
     "Path must stay inside the storage folder"
   );
 
+  assert(target !== storageDir, 400, "That path is the storage folder");
+
   assert(!reservedNames.test(path.basename(target)), 400, "That name is reserved");
 
   return target;
@@ -30,22 +32,40 @@ const ensureStorage = () => fs.mkdirSync(storageDir, { recursive: true });
 // Internal files that belong to the app, not to the user's storage view
 const INTERNAL_FILES = new Set(["reminders.json"]);
 
+const byTypeThenName = (a, b) => {
+  if (a.type !== b.type) {
+    return a.type === "folder" ? -1 : 1;
+  }
+
+  return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+};
+
 export const listFiles = async () => {
   ensureStorage();
 
   return fs
     .readdirSync(storageDir, { withFileTypes: true })
     .filter((entry) => !INTERNAL_FILES.has(entry.name))
-    .map((entry) => {
-      const stat = fs.statSync(path.join(storageDir, entry.name));
+    .flatMap((entry) => {
+      let stat;
 
-      return {
-        name: entry.name,
-        type: entry.isDirectory() ? "folder" : "file",
-        size: entry.isDirectory() ? null : stat.size,
-        modified: stat.mtime.toISOString(),
-      };
-    });
+      try {
+        stat = fs.statSync(path.join(storageDir, entry.name));
+      } catch {
+        // The entry changed or disappeared while listing; skip it
+        return [];
+      }
+
+      return [
+        {
+          name: entry.name,
+          type: entry.isDirectory() ? "folder" : "file",
+          size: entry.isDirectory() ? null : stat.size,
+          modified: stat.mtime.toISOString(),
+        },
+      ];
+    })
+    .sort(byTypeThenName);
 };
 
 export const createFolder = async (folderName) => {
@@ -59,6 +79,8 @@ export const createFolder = async (folderName) => {
 };
 
 export const createFile = async (fileName, content = "") => {
+  assert(typeof content === "string", 400, "File content must be text");
+
   const filePath = resolveInStorage(fileName);
 
   assert(!fs.existsSync(filePath), 409, "That file already exists");

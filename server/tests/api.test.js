@@ -203,3 +203,35 @@ test("serves an API index", async () => {
   assert.equal(body.service, "jarvis-api");
   assert.ok(body.endpoints.system);
 });
+
+test("rejects non-text file content", async () => {
+  const response = await postJson("/api/files/create-file", {
+    fileName: "bad.txt",
+    content: 42,
+  });
+
+  assert.equal(response.status, 400);
+});
+
+test("refuses to delete the storage folder itself", async () => {
+  const response = await call("/api/files/delete-file", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ fileName: "." }),
+  });
+
+  assert.equal(response.status, 400);
+});
+
+test("lists folders before files in alphabetical order", async () => {
+  await postJson("/api/files/create-file", { fileName: "zebra.txt" });
+  await postJson("/api/files/create-file", { fileName: "alpha.txt" });
+  await postJson("/api/files/create-folder", { folderName: "workspace" });
+
+  const { entries } = await (await call("/api/files")).json();
+
+  assert.deepEqual(
+    entries.map((entry) => entry.name),
+    ["workspace", "alpha.txt", "zebra.txt"]
+  );
+});

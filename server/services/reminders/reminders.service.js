@@ -21,7 +21,11 @@ let reminders = load();
 
 const save = () => {
   fs.mkdirSync(storageDir, { recursive: true });
-  fs.writeFileSync(remindersFile, JSON.stringify(reminders, null, 2));
+
+  // Write to a temporary file first so a crash cannot truncate the list
+  const temporaryFile = `${remindersFile}.tmp`;
+  fs.writeFileSync(temporaryFile, JSON.stringify(reminders, null, 2));
+  fs.renameSync(temporaryFile, remindersFile);
 };
 
 export const addReminder = (text) => {
@@ -43,7 +47,7 @@ export const addReminder = (text) => {
   return reminder;
 };
 
-export const getReminders = () => reminders;
+export const getReminders = () => reminders.map((reminder) => ({ ...reminder }));
 
 export const deleteReminder = (id) => {
   const index = reminders.findIndex((reminder) => reminder.id === id);
