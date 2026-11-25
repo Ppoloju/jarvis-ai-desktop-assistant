@@ -139,7 +139,7 @@ export default function Files() {
 
       <div className="mb-5 grid gap-5 lg:grid-cols-3">
         <Card title="New folder">
-          <form onSubmit={handleFolder} className="space-y-3">
+          <form onSubmit={handleFolder} className="flex h-full flex-col gap-3">
             <Input
               aria-label="New folder name"
               value={folderName}
@@ -153,7 +153,7 @@ export default function Files() {
               variant="secondary"
               loading={busy === "folder"}
               disabled={busy !== "" || !folderName.trim()}
-              className="w-full"
+              className="mt-auto w-full"
             >
               Create folder
             </Button>
@@ -161,7 +161,7 @@ export default function Files() {
         </Card>
 
         <Card title="New file">
-          <form onSubmit={handleFile} className="space-y-3">
+          <form onSubmit={handleFile} className="flex h-full flex-col gap-3">
             <Input
               aria-label="New file name"
               value={fileName}
@@ -183,7 +183,7 @@ export default function Files() {
               variant="secondary"
               loading={busy === "file"}
               disabled={busy !== "" || !fileName.trim()}
-              className="w-full"
+              className="mt-auto w-full"
             >
               Create file
             </Button>
@@ -191,7 +191,7 @@ export default function Files() {
         </Card>
 
         <Card title="Rename">
-          <form onSubmit={handleRename} className="space-y-3">
+          <form onSubmit={handleRename} className="flex h-full flex-col gap-3">
             <Input
               aria-label="Current name"
               value={oldName}
@@ -212,7 +212,7 @@ export default function Files() {
               variant="secondary"
               loading={busy === "rename"}
               disabled={busy !== "" || !oldName.trim() || !newName.trim()}
-              className="w-full"
+              className="mt-auto w-full"
             >
               Rename item
             </Button>
@@ -236,13 +236,13 @@ export default function Files() {
           />
         ) : (
           <div className="-mx-5 overflow-x-auto">
-            <table className="w-full min-w-[32rem] text-left text-sm" aria-label="Stored items">
+            <table className="w-full text-left text-sm" aria-label="Stored items">
               <thead>
                 <tr className="border-b border-slate-100 text-xs uppercase tracking-wide text-slate-500">
                   <th className="px-5 py-2 font-medium">Name</th>
-                  <th className="px-3 py-2 font-medium">Type</th>
+                  <th className="hidden px-3 py-2 font-medium sm:table-cell">Type</th>
                   <th className="px-3 py-2 font-medium">Size</th>
-                  <th className="px-3 py-2 font-medium">Modified</th>
+                  <th className="hidden px-3 py-2 font-medium md:table-cell">Modified</th>
                   <th className="px-5 py-2 text-right font-medium">Action</th>
                 </tr>
               </thead>
@@ -250,21 +250,27 @@ export default function Files() {
                 {entries.map((entry) => (
                   <tr key={entry.name} className="transition hover:bg-slate-50">
                     <td className="px-5 py-3">
-                      <span className="flex items-center gap-2 font-medium text-slate-800">
+                      <span className="flex min-w-0 items-center gap-2 font-medium text-slate-800">
                         <Icon
                           name={entry.type === "folder" ? "folder" : "file"}
-                          className={`h-4 w-4 ${
+                          className={`h-4 w-4 shrink-0 ${
                             entry.type === "folder" ? "text-amber-500" : "text-indigo-500"
                           }`}
                         />
-                        {entry.name}
+                        <span className="truncate" title={entry.name}>
+                          {entry.name}
+                        </span>
                       </span>
                     </td>
-                    <td className="px-3 py-3 capitalize text-slate-500">{entry.type}</td>
+                    <td className="hidden px-3 py-3 capitalize text-slate-500 sm:table-cell">
+                      {entry.type}
+                    </td>
                     <td className="px-3 py-3 tabular-nums text-slate-500">
                       {formatSize(entry.size)}
                     </td>
-                    <td className="px-3 py-3 text-slate-500">{formatDateTime(entry.modified)}</td>
+                    <td className="hidden px-3 py-3 text-slate-500 md:table-cell">
+                      {formatDateTime(entry.modified)}
+                    </td>
                     <td className="px-5 py-3 text-right">
                       <ConfirmButton
                         aria-label={`Delete ${entry.name}`}
