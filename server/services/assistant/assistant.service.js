@@ -26,6 +26,8 @@ const SUGGESTED_FALLBACK = [
   "list files",
 ];
 
+const count = (value, word) => `${value} ${word}${value === 1 ? "" : "s"}`;
+
 const formatBytes = (bytes) => {
   const gb = bytes / (1024 * 1024 * 1024);
   return `${gb.toFixed(2)} GB`;
@@ -45,7 +47,7 @@ const listFilesReply = async () => {
 
   const extra = entries.length > 15 ? `\n...and ${entries.length - 15} more.` : "";
 
-  return { reply: `You have ${entries.length} item(s) in storage:\n${lines}${extra}` };
+  return { reply: `You have ${count(entries.length, "item")} in storage:\n${lines}${extra}` };
 };
 
 const remindersReply = () => {
@@ -59,7 +61,7 @@ const remindersReply = () => {
 
   const lines = list.map((reminder, index) => `${index + 1}. ${reminder.text}`).join("\n");
 
-  return { reply: `You have ${list.length} reminder(s):\n${lines}` };
+  return { reply: `You have ${count(list.length, "reminder")}:\n${lines}` };
 };
 
 const systemReply = () => {
