@@ -41,6 +41,28 @@ to `server/storage`, so `../` traversal is rejected. Since the feature now suppo
 you create there can be read back in the UI or with chat ("read notes.txt") without opening another
 application.
 
+## What You Can Use It For
+
+Orbit is built for one person on one machine. Typical uses:
+
+- **Keep a local scratchpad.** Create `notes.txt` in Files, then ask "read notes.txt" to see it
+  again. Handy for short notes, checklists and snippets that should not live in a cloud app.
+- **Look before you share.** Ask "what's in my downloads" to find the installer, PDF or screenshot
+  you need without opening File Explorer, Finder or a file manager.
+- **Check your desktop and documents at a glance.** The read-only browser shows files, sizes and
+  dates, and opens subfolders. It is safe to leave open because it cannot change anything.
+- **Start your working set.** Open Chrome, VS Code or Calculator and your usual website from one
+  page instead of hunting through the start menu.
+- **Capture what is on screen.** Take a screenshot for a bug report or a quick record; the newest
+  20 captures stay available in the gallery.
+- **Track small commitments.** Add reminders such as "water the plants", mark them done, and find
+  them again after a restart.
+- **Check the machine.** See platform, CPU count, memory and uptime without leaving the app.
+- **Ask without an account.** Everything runs offline: no API key, no telemetry, no cloud history.
+
+It is not a team tool, a scheduler or a remote-access service. Keep it on a trusted single-user
+machine and on loopback.
+
 ## Built With
 
 - **Frontend:** React 19, Vite, React Router, Tailwind CSS v4
