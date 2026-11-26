@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   listFiles,
+  readStoredFile,
   createFolder,
   createFile,
   renameFile,
@@ -30,6 +31,8 @@ export default function Files() {
   const [content, setContent] = useState("");
   const [oldName, setOldName] = useState("");
   const [newName, setNewName] = useState("");
+  const [preview, setPreview] = useState(null);
+  const [previewing, setPreviewing] = useState("");
 
   const load = useCallback(async () => {
     const data = await listFiles();
@@ -85,6 +88,20 @@ export default function Files() {
     }
   };
 
+  const handlePreview = async (entry) => {
+    setPreviewing(entry.name);
+    setStatus(null);
+
+    try {
+      const data = await readStoredFile(entry.name);
+      setPreview(data.file);
+    } catch (error) {
+      setStatus({ tone: "error", text: error.message });
+    } finally {
+      setPreviewing("");
+    }
+  };
+
   const handleFolder = async (event) => {
     event.preventDefault();
 
@@ -115,7 +132,7 @@ export default function Files() {
     <>
       <PageHeader
         title="Files"
-        description="Create, rename and remove items in the assistant's storage folder."
+        description="A sandboxed workspace for scratch text files. Items here live in the app's own storage folder, not in your Desktop, Documents or Downloads."
         action={
           <Button
             variant="secondary"
@@ -272,15 +289,36 @@ export default function Files() {
                       {formatDateTime(entry.modified)}
                     </td>
                     <td className="px-5 py-3 text-right">
-                      <ConfirmButton
-                        aria-label={`Delete ${entry.name}`}
-                        disabled={busy !== ""}
-                        onConfirm={() =>
-                          run("delete", () => deleteFile(entry.name), `Deleted ${entry.name}`)
-                        }
-                      >
-                        Delete
-                      </ConfirmButton>
+                      <div className="flex items-center justify-end gap-1">
+                        {entry.type === "file" && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            icon="file"
+                            loading={previewing === entry.name}
+                            disabled={busy !== ""}
+                            aria-label={`Preview ${entry.name}`}
+                            onClick={() => handlePreview(entry)}
+                          >
+                            View
+                          </Button>
+                        )}
+                        <ConfirmButton
+                          aria-label={`Delete ${entry.name}`}
+                          disabled={busy !== ""}
+                          onConfirm={async () => {
+                            const deleted = await run(
+                              "delete",
+                              () => deleteFile(entry.name),
+                              `Deleted ${entry.name}`
+                            );
+
+                            if (deleted && preview?.name === entry.name) setPreview(null);
+                          }}
+                        >
+                          Delete
+                        </ConfirmButton>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -289,6 +327,26 @@ export default function Files() {
           </div>
         )}
       </Card>
+
+      {preview && (
+        <Card
+          className="mt-5"
+          title={preview.name}
+          description={`${formatSize(preview.size)} · modified ${formatDateTime(preview.modified)}`}
+          action={
+            <Button variant="ghost" size="sm" icon="close" onClick={() => setPreview(null)}>
+              Close
+            </Button>
+          }
+        >
+          <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-slate-50 p-4 text-xs leading-relaxed text-slate-700">
+            {preview.content || "(This file is empty.)"}
+          </pre>
+          <p className="mt-2 text-xs text-slate-500">
+            Text preview only. Files up to 256 KB can be shown here.
+          </p>
+        </Card>
+      )}
     </>
   );
 }

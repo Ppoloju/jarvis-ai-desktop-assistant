@@ -10,6 +10,7 @@ const CAPABILITIES = [
   ["Reminders", "remind me to call Sam"],
   ["Your reminders", "list my reminders"],
   ["Stored files", "list files"],
+  ["Read a stored file", "read notes.txt"],
   ["Your folders", "what's in my downloads"],
   ["Automation", "open calculator"],
   ["Websites", "open google.com"],
@@ -128,9 +129,26 @@ const remindersReply = () => {
     };
   }
 
-  const lines = list.map((reminder, index) => `${index + 1}. ${reminder.text}`).join("\n");
+  const open = list.filter((reminder) => !reminder.completed).length;
+  const lines = list
+    .map((reminder, index) => `${index + 1}. ${reminder.completed ? "[done] " : ""}${reminder.text}`)
+    .join("\n");
 
-  return { reply: `You have ${count(list.length, "reminder")}:\n${lines}` };
+  return { reply: `You have ${count(list.length, "reminder")} (${open} open):\n${lines}` };
+};
+
+const readFileReply = async (name) => {
+  try {
+    const file = await files.readFile(name);
+    const content = file.content.trim();
+    const preview = content.length > 2000 ? `${content.slice(0, 2000)}\n...` : content;
+
+    return {
+      reply: `${file.name} (${formatSize(file.size)}):\n\n${preview || "(This file is empty.)"}`,
+    };
+  } catch (error) {
+    return { reply: `I could not read that file: ${error.message}` };
+  }
 };
 
 const systemReply = () => {
@@ -184,7 +202,7 @@ export const reply = async (message) => {
   if (/^(hi|hello|hey|yo|hola)\b/.test(lower) || /^good (morning|afternoon|evening)\b/.test(lower)) {
     return {
       reply:
-        "Hello! I am Jarvis, your local desktop assistant. I can check the time, report system status, manage reminders, list stored files, read your Desktop, Documents and Downloads, and launch apps.",
+        "Hello! I am Orbit, your local desktop assistant. I can check the time, report system status, manage reminders, list stored files, read your Desktop, Documents and Downloads, and launch apps.",
     };
   }
 
@@ -202,6 +220,18 @@ export const reply = async (message) => {
 
   if (/^(help|commands|what can you do|capabilities)\b/.test(lower)) {
     return helpReply();
+  }
+
+  const addReminder = text.match(/^(?:remind me to|add (?:a )?reminder:?)\s+(.+)$/i);
+
+  if (addReminder) {
+    const reminder = reminders.addReminder(addReminder[1]);
+
+    return { reply: `Added reminder: ${reminder.text}` };
+  }
+
+  if (/reminder/.test(lower)) {
+    return remindersReply();
   }
 
   if (/\btime\b/.test(lower)) {
@@ -223,22 +253,16 @@ export const reply = async (message) => {
     return systemReply();
   }
 
-  const addReminder = text.match(/^(?:remind me to|add (?:a )?reminder:?)\s+(.+)$/i);
-
-  if (addReminder) {
-    const reminder = reminders.addReminder(addReminder[1]);
-
-    return { reply: `Added reminder: ${reminder.text}` };
-  }
-
-  if (/reminder/.test(lower)) {
-    return remindersReply();
-  }
-
   const laptopAnswer = await laptopReply(text);
 
   if (laptopAnswer) {
     return laptopAnswer;
+  }
+
+  const readMatch = text.match(/^(?:read|cat|preview|open file|show file)\s+(.+)$/i);
+
+  if (readMatch) {
+    return readFileReply(readMatch[1].replace(/^["']|["']$/g, "").trim());
   }
 
   if (/\bfiles?\b|\bstorage\b/.test(lower)) {

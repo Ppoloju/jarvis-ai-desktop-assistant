@@ -36,11 +36,16 @@ export const openApp = async (app) =>
 export const captureScreenshot = async () =>
   request("/api/automation/screenshot", { method: "POST" });
 
+export const listScreenshots = async () => request("/api/automation/screenshots");
+
 // System API
 export const getSystemInfo = async () => request("/api/system/info");
 
 // Files API
 export const listFiles = async () => request("/api/files");
+
+export const readStoredFile = async (fileName) =>
+  request(`/api/files/content?name=${encodeURIComponent(fileName)}`);
 
 export const createFolder = async (folderName) =>
   request("/api/files/create-folder", jsonOptions("POST", { folderName }));
@@ -69,6 +74,9 @@ export const createReminder = async (text) =>
   request("/api/reminders", jsonOptions("POST", { text }));
 
 export const getReminders = async () => request("/api/reminders");
+
+export const setReminderDone = async (id, completed) =>
+  request(`/api/reminders/${id}`, jsonOptions("PATCH", { completed }));
 
 export const deleteReminder = async (id) =>
   request(`/api/reminders/${id}`, { method: "DELETE" });

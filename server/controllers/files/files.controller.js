@@ -6,6 +6,12 @@ export const listFiles = async (req, res) => {
   res.json({ success: true, entries });
 };
 
+export const readFile = async (req, res) => {
+  const file = await filesService.readFile(req.query.name);
+
+  res.json({ success: true, file });
+};
+
 export const createFolder = async (req, res) => {
   const { folderName } = req.body ?? {};
 

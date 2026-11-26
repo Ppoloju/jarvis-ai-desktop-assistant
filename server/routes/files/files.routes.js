@@ -4,6 +4,7 @@ const router = express.Router();
 
 import {
   listFiles,
+  readFile,
   createFolder,
   createFile,
   renameFile,
@@ -11,6 +12,7 @@ import {
 } from "../../controllers/files/files.controller.js";
 
 router.get("/", listFiles);
+router.get("/content", readFile);
 router.post("/create-folder", createFolder);
 router.post("/create-file", createFile);
 router.patch("/rename-file", renameFile);

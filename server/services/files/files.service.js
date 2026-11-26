@@ -3,10 +3,11 @@ import path from "path";
 
 import { assert } from "../../utils/http.js";
 
-const dataDir = process.env.JARVIS_DATA_DIR || path.join(import.meta.dirname, "../..");
+const dataDir = process.env.ORBIT_DATA_DIR || path.join(import.meta.dirname, "../..");
 const storageDir = path.join(dataDir, "storage");
 
 const reservedNames = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\..*)?$/i;
+const MAX_PREVIEW_BYTES = 256 * 1024;
 
 const resolveInStorage = (name) => {
   assert(typeof name === "string" && name.trim(), 400, "A name is required");
@@ -112,4 +113,28 @@ export const deleteFile = async (fileName) => {
   fs.rmSync(filePath, { recursive: true });
 
   return path.relative(storageDir, filePath);
+};
+
+// Text preview only: folders, binary files and very large files are refused.
+export const readFile = async (fileName) => {
+  const filePath = resolveInStorage(fileName);
+
+  assert(fs.existsSync(filePath), 404, "That file does not exist");
+
+  const stat = fs.statSync(filePath);
+
+  assert(stat.isFile(), 400, "That path is a folder");
+  assert(stat.size <= MAX_PREVIEW_BYTES, 413, "That file is too large to preview");
+
+  const buffer = fs.readFileSync(filePath);
+  const content = buffer.toString("utf8");
+
+  assert(!buffer.includes(0) && !content.includes("\uFFFD"), 415, "That file is not text");
+
+  return {
+    name: path.relative(storageDir, filePath),
+    size: stat.size,
+    modified: stat.mtime.toISOString(),
+    content,
+  };
 };
