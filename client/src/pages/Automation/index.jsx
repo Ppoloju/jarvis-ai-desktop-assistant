@@ -27,7 +27,13 @@ export default function Automation() {
 
     listScreenshots()
       .then((data) => {
-        if (active) setHistory(data.screenshots);
+        if (!active) return;
+
+        setHistory(data.screenshots);
+
+        if (data.screenshots.length > 0) {
+          setScreenshot({ url: data.screenshots[0].url });
+        }
       })
       .catch(() => {
         // The gallery is optional; the rest of the page still works
