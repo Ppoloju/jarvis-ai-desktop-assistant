@@ -1,6 +1,9 @@
-# Jarvis AI Desktop Assistant - client
+# Orbit Desktop Assistant - client
 
-React 19 + Vite + Tailwind CSS v4 frontend for the Jarvis desktop assistant.
+React 19 + Vite + Tailwind CSS v4 frontend for the Orbit desktop assistant.
+
+Pages: Overview, Automation, Files (app storage), My computer (read-only real folders), Reminders,
+History and Settings.
 
 ## Commands
 
@@ -16,4 +19,5 @@ The dev server proxies `/api` and `/screenshots` to the backend (`http://localho
 default). Override the target with `VITE_API_TARGET`, and set `VITE_API_BASE` only when the
 frontend is served from a different origin than the API. See `.env.example`.
 
-The backend lives in `../server`; see the repository README for the full setup.
+The backend lives in `../server`; see the repository README for setup, features, challenges and
+limitations.
