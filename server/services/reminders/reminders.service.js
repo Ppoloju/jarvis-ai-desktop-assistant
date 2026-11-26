@@ -4,7 +4,7 @@ import { randomUUID } from "crypto";
 
 import { assert } from "../../utils/http.js";
 
-const dataDir = process.env.JARVIS_DATA_DIR || path.join(import.meta.dirname, "../..");
+const dataDir = process.env.ORBIT_DATA_DIR || path.join(import.meta.dirname, "../..");
 const storageDir = path.join(dataDir, "storage");
 const remindersFile = path.join(storageDir, "reminders.json");
 
@@ -17,7 +17,7 @@ const load = () => {
   }
 };
 
-let reminders = load();
+let reminders = load().map((reminder) => ({ ...reminder, completed: Boolean(reminder.completed) }));
 
 const save = () => {
   fs.mkdirSync(storageDir, { recursive: true });
@@ -39,6 +39,8 @@ export const addReminder = (text) => {
     id: randomUUID(),
     text: text.trim(),
     createdAt: new Date().toISOString(),
+    completed: false,
+    completedAt: null,
   };
 
   reminders.push(reminder);
@@ -48,6 +50,20 @@ export const addReminder = (text) => {
 };
 
 export const getReminders = () => reminders.map((reminder) => ({ ...reminder }));
+
+export const setCompleted = (id, completed) => {
+  assert(typeof completed === "boolean", 400, "Completed must be true or false");
+
+  const reminder = reminders.find((item) => item.id === id);
+
+  assert(reminder, 404, "Reminder not found");
+
+  reminder.completed = completed;
+  reminder.completedAt = completed ? new Date().toISOString() : null;
+  save();
+
+  return { ...reminder };
+};
 
 export const deleteReminder = (id) => {
   const index = reminders.findIndex((reminder) => reminder.id === id);

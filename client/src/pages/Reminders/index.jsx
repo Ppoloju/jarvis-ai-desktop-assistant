@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { getReminders, createReminder, deleteReminder } from "../../services/api";
+import {
+  getReminders,
+  createReminder,
+  setReminderDone,
+  deleteReminder,
+} from "../../services/api";
 import {
   Alert,
   Button,
@@ -8,14 +13,13 @@ import {
   EmptyState,
   PageHeader,
 } from "../../components/ui";
-import { Icon } from "../../components/ui/Icons";
 import { formatDateTime, pluralize } from "../../utils/format";
 
 export default function Reminders() {
   const [reminders, setReminders] = useState([]);
   const [text, setText] = useState("");
   const [status, setStatus] = useState(null);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState("");
 
   const refresh = useCallback(async () => {
     try {
@@ -44,7 +48,7 @@ export default function Reminders() {
 
   const handleCreate = async (event) => {
     event.preventDefault();
-    setBusy(true);
+    setBusy("create");
     setStatus(null);
 
     try {
@@ -54,12 +58,26 @@ export default function Reminders() {
     } catch (error) {
       setStatus({ tone: "error", text: error.message });
     } finally {
-      setBusy(false);
+      setBusy("");
+    }
+  };
+
+  const handleToggle = async (reminder) => {
+    setBusy(reminder.id);
+    setStatus(null);
+
+    try {
+      await setReminderDone(reminder.id, !reminder.completed);
+      await refresh();
+    } catch (error) {
+      setStatus({ tone: "error", text: error.message });
+    } finally {
+      setBusy("");
     }
   };
 
   const handleDelete = async (id) => {
-    setBusy(true);
+    setBusy(id);
     setStatus(null);
 
     try {
@@ -68,11 +86,15 @@ export default function Reminders() {
     } catch (error) {
       setStatus({ tone: "error", text: error.message });
     } finally {
-      setBusy(false);
+      setBusy("");
     }
   };
 
-  const newestFirst = [...reminders].reverse();
+  const ordered = [...reminders].sort((a, b) => {
+    if (a.completed !== b.completed) return a.completed ? 1 : -1;
+
+    return new Date(b.createdAt) - new Date(a.createdAt);
+  });
 
   return (
     <>
@@ -96,10 +118,15 @@ export default function Reminders() {
             onChange={(event) => setText(event.target.value)}
             placeholder="Remind me to..."
             aria-label="Reminder text"
-            disabled={busy}
+            disabled={busy !== ""}
             className="flex-1 rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-900 shadow-sm transition placeholder:text-slate-400 hover:border-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:cursor-not-allowed disabled:bg-slate-50"
           />
-          <Button type="submit" icon="plus" loading={busy} disabled={busy || !text.trim()}>
+          <Button
+            type="submit"
+            icon="plus"
+            loading={busy === "create"}
+            disabled={busy !== "" || !text.trim()}
+          >
             Add reminder
           </Button>
         </form>
@@ -114,21 +141,32 @@ export default function Reminders() {
           />
         ) : (
           <ul className="divide-y divide-slate-100">
-            {newestFirst.map((reminder) => (
+            {ordered.map((reminder) => (
               <li
                 key={reminder.id}
                 className="flex items-center justify-between gap-4 py-3 transition hover:bg-slate-50/60"
               >
                 <div className="flex min-w-0 items-start gap-3">
-                  <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
-                    <Icon name="bell" className="h-4 w-4" />
-                  </span>
+                  <input
+                    type="checkbox"
+                    checked={reminder.completed}
+                    disabled={busy !== ""}
+                    onChange={() => handleToggle(reminder)}
+                    aria-label={`Mark "${reminder.text}" as ${reminder.completed ? "open" : "done"}`}
+                    className="mt-1.5 h-4 w-4 shrink-0 accent-indigo-600 disabled:cursor-not-allowed disabled:opacity-50"
+                  />
                   <div className="min-w-0">
-                    <p className="break-words text-sm font-medium text-slate-900">
+                    <p
+                      className={`break-words text-sm font-medium ${
+                        reminder.completed ? "text-slate-500 line-through" : "text-slate-900"
+                      }`}
+                    >
                       {reminder.text}
                     </p>
                     <p className="text-xs text-slate-500">
-                      Added {formatDateTime(reminder.createdAt)}
+                      {reminder.completed && reminder.completedAt
+                        ? `Done ${formatDateTime(reminder.completedAt)}`
+                        : `Added ${formatDateTime(reminder.createdAt)}`}
                     </p>
                   </div>
                 </div>
@@ -136,7 +174,8 @@ export default function Reminders() {
                   aria-label={`Delete reminder: ${reminder.text}`}
                   confirmLabel="Confirm delete"
                   confirmAriaLabel={`Confirm delete: ${reminder.text}`}
-                  disabled={busy}
+                  disabled={busy !== ""}
+                  loading={busy === reminder.id}
                   onConfirm={() => handleDelete(reminder.id)}
                 >
                   Delete
