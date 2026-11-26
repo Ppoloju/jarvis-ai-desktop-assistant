@@ -10,7 +10,7 @@ function Sidebar() {
           <Icon name="sparkles" className="h-5 w-5" />
         </span>
         <div>
-          <p className="text-sm font-semibold text-white">Jarvis AI</p>
+          <p className="text-sm font-semibold text-white">Orbit</p>
           <p className="text-xs text-slate-400">Desktop assistant</p>
         </div>
       </div>

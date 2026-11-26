@@ -1,7 +1,7 @@
 {
-  "name": "server",
+  "name": "orbit-server",
   "version": "1.0.0",
-  "description": "Local API for the Jarvis AI desktop assistant",
+  "description": "Local API for the Orbit desktop assistant",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

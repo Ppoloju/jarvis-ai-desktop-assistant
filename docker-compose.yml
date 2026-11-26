@@ -1,4 +1,4 @@
-name: jarvis
+name: orbit
 
 services:
   api:
@@ -7,9 +7,9 @@ services:
       NODE_ENV: production
       PORT: "5000"
       CORS_ORIGINS: http://localhost:8081
-      JARVIS_DATA_DIR: /data
+      ORBIT_DATA_DIR: /data
     volumes:
-      - jarvis-data:/data
+      - orbit-data:/data
     ports:
       - "127.0.0.1:5000:5000"
     cpus: "0.50"
@@ -43,4 +43,4 @@ services:
     restart: unless-stopped
 
 volumes:
-  jarvis-data:
+  orbit-data:

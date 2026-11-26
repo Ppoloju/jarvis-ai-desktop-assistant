@@ -9,7 +9,7 @@ RUN npm ci --omit=dev && npm cache clean --force
 COPY . .
 
 ENV PORT=5000
-ENV JARVIS_DATA_DIR=/data
+ENV ORBIT_DATA_DIR=/data
 EXPOSE 5000
 
 RUN mkdir -p /data && chown -R node:node /data

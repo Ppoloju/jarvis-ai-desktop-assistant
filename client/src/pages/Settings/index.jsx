@@ -9,7 +9,7 @@ import { Alert, Button, Card, PageHeader } from "../../components/ui";
 import { pluralize } from "../../utils/format";
 
 const rows = [
-  ["Application", "Jarvis AI Desktop Assistant"],
+  ["Application", "Orbit Desktop Assistant"],
   ["Version", "1.0.0"],
   ["Runtime", "Local (Node + React)"],
   ["API endpoint", API_BASE || "Same origin (proxied by nginx or Vite)"],

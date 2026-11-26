@@ -57,7 +57,7 @@ function Topbar() {
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 text-white">
               <Icon name="sparkles" className="h-4 w-4" />
             </span>
-            <span className="text-xs font-semibold text-slate-500">Jarvis AI</span>
+            <span className="text-xs font-semibold text-slate-500">Orbit</span>
           </span>
           <span className="hidden truncate text-sm font-semibold text-slate-900 sm:block">
             {pageTitles[pathname] || "Page not found"}

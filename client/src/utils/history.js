@@ -1,6 +1,6 @@
-const STORAGE_KEY = "jarvis-chat-history";
+const STORAGE_KEY = "orbit-chat-history";
 const MAX_ENTRIES = 50;
-const CHANGE_EVENT = "jarvis:history-changed";
+const CHANGE_EVENT = "orbit:history-changed";
 
 export const getChatHistory = () => {
   try {

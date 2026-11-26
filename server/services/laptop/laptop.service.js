@@ -25,7 +25,7 @@ const FOLDER_DEFINITIONS = [
   },
 ];
 
-const homeDir = () => process.env.JARVIS_HOME || os.homedir();
+const homeDir = () => process.env.ORBIT_HOME || os.homedir();
 
 const isDirectory = (target) => {
   try {
