@@ -224,6 +224,10 @@ docker compose down -v         # remove containers and stored data
 - App: http://localhost:8081
 - API: http://localhost:5000
 
+If the browser shows an old UI after a rebuild, it is serving a cached app shell: `index.html` is
+sent with `no-cache` so that should not happen any more, but a page loaded before that fix needs one
+hard reload (`Ctrl+Shift+R`) to pick it up. Rebuild with `--build` so the container gets the new files.
+
 The API binds to loopback outside Docker, and the published ports are bound to loopback as well.
 Resources are capped in `docker-compose.yml` at 0.50 CPU /
 256 MB for the API and 0.25 CPU / 64 MB for the web container. Files and reminders live in the

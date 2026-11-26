@@ -33,7 +33,10 @@ server {
         try_files $uri =404;
     }
 
+    # Never let a browser reuse an old app shell: the hashed assets it points at
+    # are cached for a year, so a stale index.html means a stale UI after a rebuild.
     location / {
+        add_header Cache-Control "no-cache, must-revalidate";
         try_files $uri $uri/ /index.html;
     }
 }
