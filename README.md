@@ -9,7 +9,7 @@ Orbit is the new name for this project (it was previously called "Jarvis AI Desk
 "Orbit" is meant to suggest something that stays close to your machine and quietly handles the
 small things, without pretending to be a person in the cloud.
 
-[Report a Bug](https://github.com/Ppoloju/orbit-desktop-assistant/issues)
+[Report a Bug](https://github.com/Ppoloju/orbit-ai-desktop-assistant/issues)
 
 ## About the Project
 
@@ -87,8 +87,8 @@ machine and on loopback.
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/Ppoloju/orbit-desktop-assistant.git
-   cd orbit-desktop-assistant
+   git clone https://github.com/Ppoloju/orbit-ai-desktop-assistant.git
+   cd orbit-ai-desktop-assistant
    ```
 
 2. Install both services:
@@ -146,7 +146,7 @@ machine and on loopback.
 ## Project Structure
 
 ```text
-orbit-desktop-assistant/
+orbit-ai-desktop-assistant/
   client/                     React dashboard
     nginx/                    nginx template for the container build
     src/
