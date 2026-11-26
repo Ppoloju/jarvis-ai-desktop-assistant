@@ -11,7 +11,7 @@ const execAsync = promisify(exec);
 const workerPath = path.join(import.meta.dirname, "../../utils/screenshot-worker.js");
 const windowsScriptPath = path.join(import.meta.dirname, "../../utils/screenshot-windows.ps1");
 
-const dataDir = process.env.JARVIS_DATA_DIR || path.join(import.meta.dirname, "../..");
+const dataDir = process.env.ORBIT_DATA_DIR || path.join(import.meta.dirname, "../..");
 const screenshotsDir = path.join(dataDir, "screenshots");
 const MAX_SCREENSHOTS = 20;
 const LAUNCH_TIMEOUT_MS = 10000;
@@ -46,6 +46,28 @@ const normalizeUrl = (url) => {
   );
 
   return parsed.toString();
+};
+
+export const listScreenshots = () => {
+  if (!fs.existsSync(screenshotsDir)) {
+    return [];
+  }
+
+  return fs
+    .readdirSync(screenshotsDir)
+    .filter((file) => file.endsWith(".png"))
+    .map((file) => {
+      const stat = fs.statSync(path.join(screenshotsDir, file));
+
+      return {
+        file,
+        url: `/screenshots/${encodeURIComponent(file)}`,
+        size: stat.size,
+        createdAt: stat.mtime.toISOString(),
+      };
+    })
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, MAX_SCREENSHOTS);
 };
 
 const pruneScreenshots = () => {

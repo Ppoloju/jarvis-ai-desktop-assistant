@@ -22,6 +22,10 @@ export const openApp = async (req, res) => {
   });
 };
 
+export const listScreenshots = (req, res) => {
+  res.json({ success: true, screenshots: automationService.listScreenshots() });
+};
+
 export const captureScreenshot = async (req, res) => {
   const file = await automationService.takeScreenshot();
 

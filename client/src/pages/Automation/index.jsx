@@ -1,5 +1,11 @@
-import { useState } from "react";
-import { openWebsite, openApp, captureScreenshot, assetUrl } from "../../services/api";
+import { useEffect, useState } from "react";
+import {
+  openWebsite,
+  openApp,
+  captureScreenshot,
+  listScreenshots,
+  assetUrl,
+} from "../../services/api";
 import { Alert, Button, Card, Input, PageHeader } from "../../components/ui";
 import { Icon } from "../../components/ui/Icons";
 
@@ -12,8 +18,25 @@ const APPS = [
 export default function Automation() {
   const [url, setUrl] = useState("");
   const [screenshot, setScreenshot] = useState(null);
+  const [history, setHistory] = useState([]);
   const [status, setStatus] = useState(null);
   const [busy, setBusy] = useState("");
+
+  useEffect(() => {
+    let active = true;
+
+    listScreenshots()
+      .then((data) => {
+        if (active) setHistory(data.screenshots);
+      })
+      .catch(() => {
+        // The gallery is optional; the rest of the page still works
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const run = async (key, action, successText) => {
     setBusy(key);
@@ -48,6 +71,12 @@ export default function Automation() {
 
     if (result) {
       setScreenshot(result);
+      setHistory((previous) =>
+        [
+          { file: result.file, url: result.url, createdAt: new Date().toISOString() },
+          ...previous.filter((item) => item.file !== result.file),
+        ].slice(0, 6)
+      );
     }
   };
 
@@ -146,6 +175,39 @@ export default function Automation() {
               <Icon name="camera" className="h-5 w-5 text-slate-400" />
               <p className="text-sm text-slate-500">
                 No screenshot captured yet. The latest capture will appear here.
+              </p>
+            </div>
+          )}
+
+          {history.length > 0 && (
+            <div className="mt-5 border-t border-slate-100 pt-4">
+              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
+                Recent captures
+              </p>
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-6">
+                {history.map((item) => (
+                  <button
+                    key={item.file}
+                    type="button"
+                    onClick={() => setScreenshot({ url: item.url })}
+                    aria-label={`Show ${item.file}`}
+                    className={`overflow-hidden rounded-lg border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                      screenshot?.url === item.url
+                        ? "border-indigo-400 ring-1 ring-indigo-400"
+                        : "border-slate-200 hover:border-indigo-300"
+                    }`}
+                  >
+                    <img
+                      src={assetUrl(item.url)}
+                      alt={item.file}
+                      loading="lazy"
+                      className="h-16 w-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-slate-500">
+                The newest 20 captures are kept; older ones are removed automatically.
               </p>
             </div>
           )}
