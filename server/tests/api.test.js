@@ -4,10 +4,10 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-process.env.JARVIS_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "jarvis-test-"));
-process.env.JARVIS_HOME = fs.mkdtempSync(path.join(os.tmpdir(), "jarvis-home-"));
+process.env.ORBIT_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "orbit-test-"));
+process.env.ORBIT_HOME = fs.mkdtempSync(path.join(os.tmpdir(), "orbit-home-"));
 
-const homeDir = process.env.JARVIS_HOME;
+const homeDir = process.env.ORBIT_HOME;
 
 const { default: app } = await import("../app.js");
 
@@ -38,7 +38,7 @@ test.before(async () => {
 
 test.after(() => {
   server.close();
-  fs.rmSync(process.env.JARVIS_DATA_DIR, { recursive: true, force: true });
+  fs.rmSync(process.env.ORBIT_DATA_DIR, { recursive: true, force: true });
   fs.rmSync(homeDir, { recursive: true, force: true });
 });
 
@@ -47,11 +47,11 @@ test("serves the health message", async () => {
   const body = await response.text();
 
   assert.equal(response.status, 200);
-  assert.equal(body, "Jarvis API is running.");
+  assert.equal(body, "Orbit API is running.");
 });
 
 test("serves screenshots from the configured data directory", async () => {
-  const screenshotsDir = path.join(process.env.JARVIS_DATA_DIR, "screenshots");
+  const screenshotsDir = path.join(process.env.ORBIT_DATA_DIR, "screenshots");
   fs.mkdirSync(screenshotsDir, { recursive: true });
   fs.writeFileSync(path.join(screenshotsDir, "test.png"), "test-image");
 
@@ -206,13 +206,95 @@ test("assistant reports system status and handles unknown input", async () => {
   assert.match(unknown.reply, /what time is it/i);
 });
 
+test("previews stored text files and refuses folders and binary files", async () => {
+  await postJson("/api/files/create-file", { fileName: "preview/hello.txt", content: "hello orbit" });
+  fs.writeFileSync(path.join(process.env.ORBIT_DATA_DIR, "storage", "preview", "binary.bin"), Buffer.from([0, 1, 2, 3]));
+
+  const text = await call("/api/files/content?name=preview%2Fhello.txt");
+  const body = await text.json();
+
+  assert.equal(text.status, 200);
+  assert.equal(body.file.content, "hello orbit");
+
+  assert.equal((await call("/api/files/content?name=preview")).status, 400);
+  assert.equal((await call("/api/files/content?name=preview%2Fbinary.bin")).status, 415);
+  assert.equal((await call("/api/files/content?name=missing.txt")).status, 404);
+  assert.equal((await call("/api/files/content?name=..%2Fescape.txt")).status, 400);
+});
+
+test("marks reminders as done and back to open", async () => {
+  const created = await postJson("/api/reminders", { text: "stretch" });
+  const { reminder } = await created.json();
+
+  const done = await call(`/api/reminders/${reminder.id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ completed: true }),
+  });
+  const doneBody = await done.json();
+
+  assert.equal(done.status, 200);
+  assert.equal(doneBody.reminder.completed, true);
+  assert.ok(doneBody.reminder.completedAt);
+
+  const bad = await call(`/api/reminders/${reminder.id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ completed: "yes" }),
+  });
+
+  assert.equal(bad.status, 400);
+  assert.equal((await call("/api/reminders/missing", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ completed: true }),
+  })).status, 404);
+
+  const reopened = await call(`/api/reminders/${reminder.id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ completed: false }),
+  });
+  const reopenedBody = await reopened.json();
+
+  assert.equal(reopenedBody.reminder.completed, false);
+  assert.equal(reopenedBody.reminder.completedAt, null);
+});
+
+test("lists recent screenshots newest first", async () => {
+  const screenshotsDir = path.join(process.env.ORBIT_DATA_DIR, "screenshots");
+  fs.mkdirSync(screenshotsDir, { recursive: true });
+  fs.writeFileSync(path.join(screenshotsDir, "older.png"), "one");
+  fs.writeFileSync(path.join(screenshotsDir, "newer.png"), "two");
+  fs.utimesSync(path.join(screenshotsDir, "older.png"), new Date(2020, 0, 1), new Date(2020, 0, 1));
+
+  const { screenshots } = await (await call("/api/automation/screenshots")).json();
+
+  assert.equal(screenshots[0].file, "newer.png");
+  assert.ok(screenshots.some((item) => item.file === "test.png"));
+  assert.match(screenshots[0].url, /^\/screenshots\//);
+});
+
+test("assistant reads stored files and adds timed reminders", async () => {
+  await postJson("/api/files/create-file", { fileName: "chat-note.txt", content: "remember this" });
+
+  const read = await (await postJson("/api/chat", { message: "read chat-note.txt" })).json();
+
+  assert.match(read.reply, /remember this/);
+
+  const timed = await (await postJson("/api/chat", { message: "remind me to time my run" })).json();
+
+  assert.match(timed.reply, /Added reminder: time my run/i);
+});
+
 test("serves an API index", async () => {
   const response = await call("/api");
   const body = await response.json();
 
   assert.equal(response.status, 200);
-  assert.equal(body.service, "jarvis-api");
+  assert.equal(body.service, "orbit-api");
   assert.ok(body.endpoints.system);
+  assert.ok(body.endpoints.files.includes("GET /api/files/content?name=..."));
 });
 
 test("rejects non-text file content", async () => {
@@ -240,9 +322,11 @@ test("lists folders before files in alphabetical order", async () => {
   await postJson("/api/files/create-folder", { folderName: "workspace" });
 
   const { entries } = await (await call("/api/files")).json();
+  const names = entries.map((entry) => entry.name);
 
+  // Only compare this test's own entries so earlier tests cannot reorder the result
   assert.deepEqual(
-    entries.map((entry) => entry.name),
+    names.filter((name) => ["workspace", "alpha.txt", "zebra.txt"].includes(name)),
     ["workspace", "alpha.txt", "zebra.txt"]
   );
 });
