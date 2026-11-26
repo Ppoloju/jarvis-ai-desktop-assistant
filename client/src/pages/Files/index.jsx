@@ -258,7 +258,7 @@ export default function Files() {
                 <tr className="border-b border-slate-100 text-xs uppercase tracking-wide text-slate-500">
                   <th className="px-5 py-2 font-medium">Name</th>
                   <th className="hidden px-3 py-2 font-medium sm:table-cell">Type</th>
-                  <th className="px-3 py-2 font-medium">Size</th>
+                  <th className="hidden px-3 py-2 font-medium sm:table-cell">Size</th>
                   <th className="hidden px-3 py-2 font-medium md:table-cell">Modified</th>
                   <th className="px-5 py-2 text-right font-medium">Action</th>
                 </tr>
@@ -282,7 +282,7 @@ export default function Files() {
                     <td className="hidden px-3 py-3 capitalize text-slate-500 sm:table-cell">
                       {entry.type}
                     </td>
-                    <td className="px-3 py-3 tabular-nums text-slate-500">
+                    <td className="hidden px-3 py-3 tabular-nums text-slate-500 sm:table-cell">
                       {formatSize(entry.size)}
                     </td>
                     <td className="hidden px-3 py-3 text-slate-500 md:table-cell">
@@ -300,11 +300,13 @@ export default function Files() {
                             aria-label={`Preview ${entry.name}`}
                             onClick={() => handlePreview(entry)}
                           >
-                            View
+                            <span className="hidden sm:inline">View</span>
                           </Button>
                         )}
                         <ConfirmButton
                           aria-label={`Delete ${entry.name}`}
+                          confirmLabel="Sure?"
+                          confirmAriaLabel={`Confirm delete ${entry.name}`}
                           disabled={busy !== ""}
                           onConfirm={async () => {
                             const deleted = await run(
@@ -316,7 +318,7 @@ export default function Files() {
                             if (deleted && preview?.name === entry.name) setPreview(null);
                           }}
                         >
-                          Delete
+                          <span className="hidden sm:inline">Delete</span>
                         </ConfirmButton>
                       </div>
                     </td>
