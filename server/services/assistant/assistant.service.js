@@ -1,5 +1,6 @@
 import * as reminders from "../reminders/reminders.service.js";
 import * as files from "../files/files.service.js";
+import * as laptop from "../laptop/laptop.service.js";
 import * as automation from "../automation/automation.service.js";
 import { getSystemInfo } from "../system/system.service.js";
 
@@ -9,6 +10,7 @@ const CAPABILITIES = [
   ["Reminders", "remind me to call Sam"],
   ["Your reminders", "list my reminders"],
   ["Stored files", "list files"],
+  ["Your folders", "what's in my downloads"],
   ["Automation", "open calculator"],
   ["Websites", "open google.com"],
 ];
@@ -24,6 +26,7 @@ const SUGGESTED_FALLBACK = [
   "system info",
   "list my reminders",
   "list files",
+  "what's in my downloads",
 ];
 
 const count = (value, word) => `${value} ${word}${value === 1 ? "" : "s"}`;
@@ -31,6 +34,22 @@ const count = (value, word) => `${value} ${word}${value === 1 ? "" : "s"}`;
 const formatBytes = (bytes) => {
   const gb = bytes / (1024 * 1024 * 1024);
   return `${gb.toFixed(2)} GB`;
+};
+
+const formatSize = (bytes) => {
+  if (bytes === null || bytes === undefined) return "-";
+  if (bytes < 1024) return `${bytes} B`;
+
+  const units = ["KB", "MB", "GB", "TB"];
+  let value = bytes / 1024;
+  let unit = 0;
+
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+
+  return `${value.toFixed(1)} ${units[unit]}`;
 };
 
 const listFilesReply = async () => {
@@ -48,6 +67,56 @@ const listFilesReply = async () => {
   const extra = entries.length > 15 ? `\n...and ${entries.length - 15} more.` : "";
 
   return { reply: `You have ${count(entries.length, "item")} in storage:\n${lines}${extra}` };
+};
+
+const LAPTOP_FOLDERS = [
+  { key: "desktop", pattern: /\bdesktop\b/i },
+  { key: "documents", pattern: /\b(documents?|docs)\b/i },
+  { key: "downloads", pattern: /\bdownloads?\b/i },
+];
+
+const BROWSE_WORDS =
+  /\b(what'?s? in|what is in|anything in|contents?|inside|list|show|browse|files?|folders?)\b/i;
+
+const laptopReply = async (text) => {
+  const folder = LAPTOP_FOLDERS.find((item) => item.pattern.test(text));
+
+  if (!folder || !BROWSE_WORDS.test(text)) {
+    return null;
+  }
+
+  const subPathMatch = text.match(
+    /\b(?:desktop|documents?|docs|downloads?)\s*(?:folder)?\s*(?:\/|\\|>)\s*([^?\n]+)/i
+  );
+  const subPath = subPathMatch ? subPathMatch[1].trim().replace(/[.!?,;:'"]+$/, "") : "";
+
+  try {
+    const listing = await laptop.listFolder(folder.key, subPath);
+    const label = [listing.label, ...listing.segments].join(" / ");
+
+    if (listing.entries.length === 0) {
+      return { reply: `${label} is empty. This is a read-only view of your computer.` };
+    }
+
+    const lines = listing.entries
+      .slice(0, 15)
+      .map((entry) =>
+        entry.type === "folder"
+          ? `- Folder: ${entry.name}`
+          : `- File: ${entry.name} (${formatSize(entry.size)})`
+      )
+      .join("\n");
+
+    const extra =
+      listing.entries.length > 15 ? `\n...and ${listing.entries.length - 15} more.` : "";
+    const truncated = listing.truncated ? " Only the first 500 entries are shown." : "";
+
+    return {
+      reply: `${label} has ${count(listing.entries.length, "item")}:\n${lines}${extra}${truncated}\n\nThis is a read-only view, so nothing there can be changed from chat.`,
+    };
+  } catch (error) {
+    return { reply: `I could not read ${folder.key}: ${error.message}` };
+  }
 };
 
 const remindersReply = () => {
@@ -115,7 +184,7 @@ export const reply = async (message) => {
   if (/^(hi|hello|hey|yo|hola)\b/.test(lower) || /^good (morning|afternoon|evening)\b/.test(lower)) {
     return {
       reply:
-        "Hello! I am Jarvis, your local desktop assistant. I can check the time, report system status, manage reminders, list stored files and launch apps.",
+        "Hello! I am Jarvis, your local desktop assistant. I can check the time, report system status, manage reminders, list stored files, read your Desktop, Documents and Downloads, and launch apps.",
     };
   }
 
@@ -164,6 +233,12 @@ export const reply = async (message) => {
 
   if (/reminder/.test(lower)) {
     return remindersReply();
+  }
+
+  const laptopAnswer = await laptopReply(text);
+
+  if (laptopAnswer) {
+    return laptopAnswer;
   }
 
   if (/\bfiles?\b|\bstorage\b/.test(lower)) {

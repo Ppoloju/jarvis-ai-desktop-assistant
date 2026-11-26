@@ -54,6 +54,16 @@ export const renameFile = async (oldName, newName) =>
 export const deleteFile = async (fileName) =>
   request("/api/files/delete-file", jsonOptions("DELETE", { fileName }));
 
+// Laptop folders API (read-only)
+export const getLaptopFolders = async () => request("/api/laptop");
+
+export const listLaptopFolder = async (folder, subPath = "") =>
+  request(
+    `/api/laptop/${encodeURIComponent(folder)}${
+      subPath ? `?path=${encodeURIComponent(subPath)}` : ""
+    }`
+  );
+
 // Reminders API
 export const createReminder = async (text) =>
   request("/api/reminders", jsonOptions("POST", { text }));

@@ -5,6 +5,9 @@ import os from "node:os";
 import path from "node:path";
 
 process.env.JARVIS_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "jarvis-test-"));
+process.env.JARVIS_HOME = fs.mkdtempSync(path.join(os.tmpdir(), "jarvis-home-"));
+
+const homeDir = process.env.JARVIS_HOME;
 
 const { default: app } = await import("../app.js");
 
@@ -21,6 +24,13 @@ const postJson = (route, body) =>
   });
 
 test.before(async () => {
+  fs.mkdirSync(path.join(homeDir, "Desktop", "Projects"), { recursive: true });
+  fs.writeFileSync(path.join(homeDir, "Desktop", "welcome.txt"), "hi");
+  fs.mkdirSync(path.join(homeDir, "Documents"), { recursive: true });
+  fs.writeFileSync(path.join(homeDir, "Documents", "notes.txt"), "notes");
+  fs.mkdirSync(path.join(homeDir, "Downloads"), { recursive: true });
+  fs.writeFileSync(path.join(homeDir, "Downloads", "report.pdf"), "pdf");
+
   server = app.listen(0);
   await new Promise((resolve) => server.once("listening", resolve));
   base = `http://127.0.0.1:${server.address().port}`;
@@ -29,6 +39,7 @@ test.before(async () => {
 test.after(() => {
   server.close();
   fs.rmSync(process.env.JARVIS_DATA_DIR, { recursive: true, force: true });
+  fs.rmSync(homeDir, { recursive: true, force: true });
 });
 
 test("serves the health message", async () => {
@@ -234,4 +245,44 @@ test("lists folders before files in alphabetical order", async () => {
     entries.map((entry) => entry.name),
     ["workspace", "alpha.txt", "zebra.txt"]
   );
+});
+
+test("lists the laptop folders and their contents", async () => {
+  const { folders } = await (await call("/api/laptop")).json();
+  const downloads = folders.find((folder) => folder.key === "downloads");
+
+  assert.equal(downloads.exists, true);
+  assert.equal(downloads.count, 1);
+
+  const listing = await (await call("/api/laptop/downloads")).json();
+
+  assert.equal(listing.readOnly, true);
+  assert.equal(listing.entries[0].name, "report.pdf");
+  assert.equal(listing.entries[0].type, "file");
+
+  const nested = await (await call("/api/laptop/desktop?path=Projects")).json();
+
+  assert.deepEqual(nested.segments, ["Projects"]);
+  assert.deepEqual(nested.entries, []);
+});
+
+test("keeps the laptop browser read-only", async () => {
+  assert.equal((await call("/api/laptop/downloads?path=..%2F..")).status, 400);
+  assert.equal((await call("/api/laptop/downloads?path=%2Fetc")).status, 400);
+  assert.equal((await call("/api/laptop/music")).status, 404);
+  assert.equal((await call("/api/laptop/downloads", { method: "POST" })).status, 404);
+  assert.equal((await call("/api/laptop/downloads", { method: "DELETE" })).status, 404);
+});
+
+test("assistant answers questions about laptop folders", async () => {
+  const downloads = await (
+    await postJson("/api/chat", { message: "what's in my downloads" })
+  ).json();
+
+  assert.match(downloads.reply, /report\.pdf/);
+  assert.match(downloads.reply, /read-only/i);
+
+  const desktop = await (await postJson("/api/chat", { message: "show me my desktop" })).json();
+
+  assert.match(desktop.reply, /Projects/);
 });

@@ -26,11 +26,15 @@ predictable error responses and packaging a two-service app in containers that s
 ## Key Features
 
 - **Local assistant:** greetings and small talk, time and date, system status, reminder creation and
-  listing, file listing, app and website launching, and helpful suggestions for unknown input.
+  listing, file listing, desktop folder lookups, app and website launching, and helpful suggestions
+  for unknown input.
 - **Desktop automation:** open an http/https site, launch Chrome, VS Code or Calculator, and capture
   a screenshot that is previewed in the app. Old screenshots are pruned automatically.
 - **File management:** create, rename and delete files and folders, browsable from the UI. Every
   path is resolved and confined to `server/storage`, so traversal attempts are rejected.
+- **Your real folders (read-only):** browse Desktop, Documents and Downloads from the My computer
+  page or by asking the chat, for example "what's in my downloads". The API exposes listing routes
+  only; no endpoint can create, rename, move or delete anything in those folders.
 - **Reminders:** create and delete reminders, persisted to `server/storage/reminders.json`.
 - **Responsive dashboard:** sidebar navigation, a top bar with live API status, a shared design
   system, keyboard focus states and a mobile navigation bar.
@@ -104,6 +108,7 @@ predictable error responses and packaging a two-service app in containers that s
 | `PORT` | `5000` | API port |
 | `CORS_ORIGINS` | localhost dev and preview origins | Browser origins allowed to call the API |
 | `JARVIS_DATA_DIR` | `server/storage` | Storage root for files and reminders |
+| `JARVIS_HOME` | the current user's home | Home folder used by the read-only Desktop, Documents and Downloads browser (useful for tests) |
 | `VITE_API_TARGET` | `http://localhost:5000` | Proxy target for the dev server |
 | `VITE_API_BASE` | empty | API origin, only when the client is served from a different origin |
 
@@ -116,14 +121,14 @@ jarvis-ai-desktop-assistant/
     src/
       components/             Chat, Navbar, Sidebar, SystemInfo, ui
       layouts/
-      pages/                  Home, Automation, Files, Reminders, History, Settings
+      pages/                  Home, Automation, Files, Computer, Reminders, History, Settings
       services/
       utils/
   server/                     Express API
     controllers/
     middlewares/
     routes/
-    services/                 assistant, automation, files, reminders, system
+    services/                 assistant, automation, files, laptop, reminders, system
     tests/
     utils/
     app.js                    express app, middleware and routes
@@ -148,6 +153,8 @@ jarvis-ai-desktop-assistant/
 | POST | `/api/files/create-file` | Create a file |
 | PATCH | `/api/files/rename-file` | Rename an entry |
 | DELETE | `/api/files/delete-file` | Delete an entry |
+| GET | `/api/laptop` | List the Desktop, Documents and Downloads folders |
+| GET | `/api/laptop/:folder?path=...` | List one folder, read-only |
 | GET | `/api/reminders` | List reminders |
 | POST | `/api/reminders` | Create a reminder |
 | DELETE | `/api/reminders/:id` | Delete a reminder |

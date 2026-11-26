@@ -5,6 +5,7 @@ export const navSections = [
       { to: "/", label: "Overview", icon: "home" },
       { to: "/automation", label: "Automation", icon: "bolt" },
       { to: "/files", label: "Files", icon: "folder" },
+      { to: "/computer", label: "My computer", icon: "computer" },
       { to: "/reminders", label: "Reminders", icon: "bell" },
     ],
   },

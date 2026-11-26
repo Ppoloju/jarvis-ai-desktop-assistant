@@ -3,6 +3,7 @@ import MainLayout from "./layouts/MainLayout";
 import Home from "./pages/Home";
 import Automation from "./pages/Automation";
 import Files from "./pages/Files";
+import Computer from "./pages/Computer";
 import Reminders from "./pages/Reminders";
 import History from "./pages/History";
 import Settings from "./pages/Settings";
@@ -17,6 +18,7 @@ function App() {
         <Route path="/" element={withLayout(<Home />)} />
         <Route path="/automation" element={withLayout(<Automation />)} />
         <Route path="/files" element={withLayout(<Files />)} />
+        <Route path="/computer" element={withLayout(<Computer />)} />
         <Route path="/reminders" element={withLayout(<Reminders />)} />
         <Route path="/history" element={withLayout(<History />)} />
         <Route path="/settings" element={withLayout(<Settings />)} />

@@ -4,6 +4,7 @@ import path from "path";
 import logger from "./middlewares/logger.js";
 import errorHandler from "./middlewares/errorHandler.js";
 import fileRoutes from "./routes/files/files.routes.js";
+import laptopRoutes from "./routes/laptop/laptop.routes.js";
 import automationRoutes from "./routes/automation/automation.routes.js";
 import systemRoutes from "./routes/system.routes.js";
 import reminderRoutes from "./routes/reminders/reminders.routes.js";
@@ -47,6 +48,7 @@ app.use(
 app.use("/api/automation", automationRoutes);
 app.use("/api/system", systemRoutes);
 app.use("/api/files", fileRoutes);
+app.use("/api/laptop", laptopRoutes);
 app.use("/api/reminders", reminderRoutes);
 
 app.get("/", (req, res) => {
@@ -80,6 +82,7 @@ app.get("/api", (req, res) => {
         "PATCH /api/files/rename-file",
         "DELETE /api/files/delete-file",
       ],
+      laptop: ["GET /api/laptop", "GET /api/laptop/:folder?path=... (read-only)"],
       reminders: [
         "GET /api/reminders",
         "POST /api/reminders",
