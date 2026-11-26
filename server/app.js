@@ -12,7 +12,7 @@ import * as assistant from "./services/assistant/assistant.service.js";
 import { assert } from "./utils/http.js";
 
 const app = express();
-const dataDir = process.env.JARVIS_DATA_DIR || import.meta.dirname;
+const dataDir = process.env.ORBIT_DATA_DIR || import.meta.dirname;
 const screenshotsDir = path.join(dataDir, "screenshots");
 
 const allowedOrigins = (
@@ -52,7 +52,7 @@ app.use("/api/laptop", laptopRoutes);
 app.use("/api/reminders", reminderRoutes);
 
 app.get("/", (req, res) => {
-  res.type("text/plain").send("Jarvis API is running.");
+  res.type("text/plain").send("Orbit API is running.");
 });
 
 app.post("/api/chat", async (req, res) => {
@@ -66,7 +66,7 @@ app.post("/api/chat", async (req, res) => {
 app.get("/api", (req, res) => {
   res.json({
     success: true,
-    service: "jarvis-api",
+    service: "orbit-api",
     endpoints: {
       system: "GET /api/system/info",
       chat: "POST /api/chat",
@@ -74,9 +74,11 @@ app.get("/api", (req, res) => {
         "POST /api/automation/open-website",
         "POST /api/automation/open-app",
         "POST /api/automation/screenshot",
+        "GET /api/automation/screenshots",
       ],
       files: [
         "GET /api/files",
+        "GET /api/files/content?name=...",
         "POST /api/files/create-folder",
         "POST /api/files/create-file",
         "PATCH /api/files/rename-file",
@@ -86,6 +88,7 @@ app.get("/api", (req, res) => {
       reminders: [
         "GET /api/reminders",
         "POST /api/reminders",
+        "PATCH /api/reminders/:id",
         "DELETE /api/reminders/:id",
       ],
     },
