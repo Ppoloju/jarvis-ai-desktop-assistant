@@ -174,7 +174,7 @@ export default function Automation() {
               src={assetUrl(screenshot.url)}
               alt="Captured desktop screenshot"
               loading="lazy"
-              className="mt-4 w-full rounded-lg border border-slate-200 shadow-sm"
+              className="mx-auto mt-4 block max-h-[420px] w-auto max-w-full rounded-lg border border-slate-200 shadow-sm"
             />
           ) : (
             <div className="mt-4 flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-slate-200 bg-slate-50/60 px-4 py-10 text-center">
