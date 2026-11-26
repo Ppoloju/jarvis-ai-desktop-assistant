@@ -6,6 +6,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: "5000"
+      HOST: "0.0.0.0"
       CORS_ORIGINS: http://localhost:8081
       ORBIT_DATA_DIR: /data
     volumes:

@@ -114,6 +114,7 @@ application.
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `PORT` | `5000` | API port |
+| `HOST` | `127.0.0.1` | Interface the API binds to (Docker sets `0.0.0.0`) |
 | `CORS_ORIGINS` | localhost dev and preview origins | Browser origins allowed to call the API |
 | `ORBIT_DATA_DIR` | `server` | Storage root; files go to `storage/` and screenshots to `screenshots/` |
 | `ORBIT_HOME` | the current user's home | Home folder used by the read-only Desktop, Documents and Downloads browser (useful for tests) |
@@ -201,7 +202,8 @@ docker compose down -v         # remove containers and stored data
 - App: http://localhost:8081
 - API: http://localhost:5000
 
-Both ports are bound to loopback, and resources are capped in `docker-compose.yml` at 0.50 CPU /
+The API binds to loopback outside Docker, and the published ports are bound to loopback as well.
+Resources are capped in `docker-compose.yml` at 0.50 CPU /
 256 MB for the API and 0.25 CPU / 64 MB for the web container. Files and reminders live in the
 `orbit-data` volume mounted at `/data`.
 

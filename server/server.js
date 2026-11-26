@@ -2,9 +2,10 @@ import "dotenv/config";
 import app from "./app.js";
 
 const PORT = Number(process.env.PORT) || 5000;
+const HOST = process.env.HOST || "127.0.0.1";
 
-const server = app.listen(PORT, () => {
-  console.log(`Orbit API running on http://localhost:${PORT}`);
+const server = app.listen(PORT, HOST, () => {
+  console.log(`Orbit API running on http://${HOST}:${PORT}`);
 });
 
 server.on("error", (error) => {

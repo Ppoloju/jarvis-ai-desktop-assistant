@@ -9,6 +9,7 @@ RUN npm ci --omit=dev && npm cache clean --force
 COPY . .
 
 ENV PORT=5000
+ENV HOST=0.0.0.0
 ENV ORBIT_DATA_DIR=/data
 EXPOSE 5000
 
