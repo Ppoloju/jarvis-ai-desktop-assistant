@@ -21,7 +21,7 @@ function Sidebar() {
       >
         {navSections.map((section) => (
           <div key={section.label}>
-            <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
               {section.label}
             </p>
             <ul className="space-y-1">
@@ -63,7 +63,7 @@ function Sidebar() {
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
           Runs on your machine
         </p>
-        <p className="text-[11px] text-slate-500">Version 1.0.0</p>
+        <p className="text-[11px] text-slate-400">Version 1.0.0</p>
       </div>
     </aside>
   );
