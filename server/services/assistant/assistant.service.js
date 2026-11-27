@@ -17,6 +17,7 @@ const CAPABILITIES = [
   ["Stored files", "list files"],
   ["Read a stored file", "read notes.txt"],
   ["Automation", "open calculator"],
+  ["An installed app", "open spotify"],
 ];
 
 const HELP_LINES = CAPABILITIES.map(([label, example]) => `- ${label}: "${example}"`).join("\n");
@@ -341,16 +342,17 @@ const systemReply = async () => {
 };
 
 const automationReply = async (target) => {
-  const supported = ["chrome", "vscode", "calculator"];
   const normalized = target
     .replace(/^(the|my|a)\s+/i, "")
     .replace(/[.!?]+$/, "")
     .trim();
 
-  if (supported.includes(normalized.toLowerCase())) {
+  // An installed app wins over the matching website: "open spotify" should
+  // launch the desktop app when there is one, and fall back to the site when not.
+  if (automation.resolveAppName(normalized)) {
     try {
-      await automation.launchApp(normalized);
-      return { reply: `Launching ${normalized}.` };
+      const label = await automation.launchApp(normalized);
+      return { reply: `Launching ${label}.` };
     } catch (error) {
       return { reply: error.message };
     }
@@ -380,7 +382,7 @@ const automationReply = async (target) => {
   }
 
   return {
-    reply: `I cannot open "${normalized}" yet. I can launch chrome, vscode or calculator, open a website like google.com or youtube, or open a file I found with "find ...".`,
+    reply: `I cannot open "${normalized}" yet. I can launch chrome, vscode, calculator or an app installed on this computer (try "open spotify"), open a website like google.com or youtube, or open a file I found with "find ...".`,
   };
 };
 

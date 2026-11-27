@@ -3,6 +3,7 @@ import {
   openWebsite,
   openApp,
   captureScreenshot,
+  listInstalledApps,
   listScreenshots,
   assetUrl,
 } from "../../services/api";
@@ -17,6 +18,8 @@ const APPS = [
 
 export default function Automation() {
   const [url, setUrl] = useState("");
+  const [appName, setAppName] = useState("");
+  const [installedApps, setInstalledApps] = useState([]);
   const [screenshot, setScreenshot] = useState(null);
   const [history, setHistory] = useState([]);
   const [status, setStatus] = useState(null);
@@ -37,6 +40,16 @@ export default function Automation() {
       })
       .catch(() => {
         // The gallery is optional; the rest of the page still works
+      });
+
+    listInstalledApps()
+      .then((data) => {
+        if (active) {
+          setInstalledApps(data.apps);
+        }
+      })
+      .catch(() => {
+        // Discovery is optional; the built-in buttons still work
       });
 
     return () => {
@@ -65,6 +78,14 @@ export default function Automation() {
 
     if (await run("website", () => openWebsite(url))) {
       setUrl("");
+    }
+  };
+
+  const handleApp = async (event) => {
+    event.preventDefault();
+
+    if (await run("app", () => openApp(appName), `Launching ${appName.trim()}...`)) {
+      setAppName("");
     }
   };
 
@@ -140,6 +161,57 @@ export default function Automation() {
               </button>
             ))}
           </div>
+        </Card>
+
+        <Card
+          title="Launch any installed app"
+          description="Names are found from the Start Menu on Windows and /Applications on macOS"
+          className="lg:col-span-2"
+        >
+          <form onSubmit={handleApp} className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="min-w-0 flex-1">
+              <Input
+                label="App name"
+                value={appName}
+                onChange={(event) => setAppName(event.target.value)}
+                placeholder="spotify"
+                disabled={busy !== ""}
+              />
+            </div>
+            <Button
+              type="submit"
+              icon="app"
+              loading={busy === "app"}
+              disabled={busy !== "" || !appName.trim()}
+            >
+              Launch app
+            </Button>
+          </form>
+
+          {installedApps.length > 0 ? (
+            <div className="mt-4 border-t border-slate-100 pt-4">
+              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
+                Found on this computer ({installedApps.length})
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {installedApps.slice(0, 12).map((app) => (
+                  <button
+                    key={app.name}
+                    type="button"
+                    onClick={() => run("app", () => openApp(app.name), `Launching ${app.label}...`)}
+                    disabled={busy !== ""}
+                    className="rounded-full border border-slate-200 px-3 py-1 text-sm font-medium text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {app.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="mt-4 text-sm text-slate-500">
+              No app shortcuts were found here. Type an app name to try it anyway.
+            </p>
+          )}
         </Card>
 
         <Card

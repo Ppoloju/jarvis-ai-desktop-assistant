@@ -6,8 +6,10 @@ import path from "node:path";
 
 process.env.ORBIT_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "orbit-test-"));
 process.env.ORBIT_HOME = fs.mkdtempSync(path.join(os.tmpdir(), "orbit-home-"));
+process.env.ORBIT_APPS_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "orbit-apps-"));
 
 const homeDir = process.env.ORBIT_HOME;
+const appsDir = process.env.ORBIT_APPS_DIR;
 
 const { default: app } = await import("../app.js");
 
@@ -31,6 +33,13 @@ test.before(async () => {
   fs.mkdirSync(path.join(homeDir, "Downloads"), { recursive: true });
   fs.writeFileSync(path.join(homeDir, "Downloads", "report.pdf"), "pdf");
 
+  // Stand-ins for Start Menu shortcuts, so discovery is testable on any OS
+  fs.mkdirSync(path.join(appsDir, "Tools"), { recursive: true });
+  fs.writeFileSync(path.join(appsDir, "Fake Editor.lnk"), "");
+  fs.writeFileSync(path.join(appsDir, "Video Player.lnk"), "");
+  fs.writeFileSync(path.join(appsDir, "Tools", "Calc Plus.lnk"), "");
+  fs.writeFileSync(path.join(appsDir, "Uninstall Fake Editor.lnk"), "");
+
   server = app.listen(0);
   await new Promise((resolve) => server.once("listening", resolve));
   base = `http://127.0.0.1:${server.address().port}`;
@@ -40,6 +49,7 @@ test.after(() => {
   server.close();
   fs.rmSync(process.env.ORBIT_DATA_DIR, { recursive: true, force: true });
   fs.rmSync(homeDir, { recursive: true, force: true });
+  fs.rmSync(appsDir, { recursive: true, force: true });
 });
 
 test("serves the health message", async () => {
@@ -93,7 +103,38 @@ test("validates automation input", async () => {
     (await postJson("/api/automation/open-website", { url: "file:///etc/passwd" })).status,
     400
   );
-  assert.equal((await postJson("/api/automation/open-app", { app: "spotify" })).status, 400);
+  assert.equal((await postJson("/api/automation/open-app", { app: "zzz-not-installed" })).status, 400);
+});
+
+test("discovers installed app shortcuts", async () => {
+  const response = await call("/api/automation/apps");
+  const body = await response.json();
+  const labels = body.apps.map((app) => app.label);
+
+  assert.equal(response.status, 200);
+  assert.ok(labels.includes("Fake Editor"));
+  assert.ok(labels.includes("Video Player"));
+  assert.ok(labels.includes("Calc Plus"), "finds shortcuts in subfolders");
+  assert.ok(!labels.some((label) => /uninstall/i.test(label)), "skips uninstallers");
+  assert.ok(body.apps.every((app) => !app.path), "paths stay on the server");
+});
+
+test("resolves installed apps by spoken name", async () => {
+  const { resolveApp } = await import("../services/automation/apps.service.js");
+
+  assert.equal(resolveApp("Fake Editor")?.label, "Fake Editor");
+  assert.equal(resolveApp("fake editor")?.label, "Fake Editor");
+  assert.equal(resolveApp("video")?.label, "Video Player");
+  assert.equal(resolveApp("calc")?.label, "Calc Plus");
+  assert.equal(resolveApp("zzz-not-installed"), null);
+});
+
+test("assistant offers to launch installed apps", async () => {
+  const unknown = await (
+    await postJson("/api/chat", { message: "open zzz-not-installed" })
+  ).json();
+
+  assert.match(unknown.reply, /installed on this computer/i);
 });
 
 test("creates, lists and deletes files", async () => {

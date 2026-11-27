@@ -73,6 +73,7 @@ app.get("/api", (req, res) => {
       automation: [
         "POST /api/automation/open-website",
         "POST /api/automation/open-app",
+        "GET /api/automation/apps",
         "POST /api/automation/screenshot",
         "GET /api/automation/screenshots",
       ],

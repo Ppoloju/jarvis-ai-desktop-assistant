@@ -22,6 +22,10 @@ export const openApp = async (req, res) => {
   });
 };
 
+export const listApps = (req, res) => {
+  res.json({ success: true, apps: automationService.listInstalledApps() });
+};
+
 export const listScreenshots = (req, res) => {
   res.json({ success: true, screenshots: automationService.listScreenshots() });
 };

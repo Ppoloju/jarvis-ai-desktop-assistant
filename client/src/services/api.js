@@ -33,6 +33,8 @@ export const openWebsite = async (url) =>
 export const openApp = async (app) =>
   request("/api/automation/open-app", jsonOptions("POST", { app }));
 
+export const listInstalledApps = async () => request("/api/automation/apps");
+
 export const captureScreenshot = async () =>
   request("/api/automation/screenshot", { method: "POST" });
 

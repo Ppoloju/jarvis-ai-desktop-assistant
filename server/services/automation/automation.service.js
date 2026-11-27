@@ -6,6 +6,7 @@ import open from "open";
 
 import { assert, httpError } from "../../utils/http.js";
 import { resolveAllowedPath } from "../laptop/laptop.service.js";
+import * as apps from "./apps.service.js";
 
 const execFileAsync = promisify(execFile);
 const execAsync = promisify(exec);
@@ -125,32 +126,73 @@ export const openFile = async (filePath) => {
   return target;
 };
 
+// Built-ins launch through a shell command; installed apps launch through the
+// shortcut that discovery found, so no user-supplied path is ever executed.
+export const resolveAppName = (app) => {
+  if (typeof app !== "string" || !app.trim()) {
+    return null;
+  }
+
+  const name = app.trim().toLowerCase();
+
+  if (SUPPORTED_APPS.has(name)) {
+    return { kind: "builtin", key: name, label: APP_LABELS[name] };
+  }
+
+  const shortcut = apps.resolveApp(app);
+
+  return shortcut ? { kind: "shortcut", key: shortcut.name, label: shortcut.label } : null;
+};
+
+export const listInstalledApps = () => apps.listPublicApps();
+
 export const launchApp = async (app) => {
   assert(typeof app === "string" && app.trim(), 400, "An app name is required");
 
   const name = app.trim().toLowerCase();
 
-  assert(SUPPORTED_APPS.has(name), 400, `Unsupported app: ${name}`);
-
   if (!hasDesktop()) {
     throw NO_DESKTOP("Launching applications");
   }
 
-  const isWindows = process.platform === "win32";
+  if (SUPPORTED_APPS.has(name)) {
+    const isWindows = process.platform === "win32";
 
-  const commands = {
-    chrome: isWindows ? "start chrome" : "open -a 'Google Chrome'",
-    vscode: "code",
-    calculator: isWindows ? "calc" : "open -a Calculator",
-  };
+    const commands = {
+      chrome: isWindows ? "start chrome" : "open -a 'Google Chrome'",
+      vscode: "code",
+      calculator: isWindows ? "calc" : "open -a Calculator",
+    };
 
-  try {
-    await execAsync(commands[name], { timeout: LAUNCH_TIMEOUT_MS });
-  } catch {
-    throw httpError(503, `Could not launch ${APP_LABELS[name]} on this computer`);
+    try {
+      await execAsync(commands[name], { timeout: LAUNCH_TIMEOUT_MS });
+    } catch {
+      throw httpError(503, `Could not launch ${APP_LABELS[name]} on this computer`);
+    }
+
+    return APP_LABELS[name];
   }
 
-  return APP_LABELS[name];
+  const shortcut = apps.resolveApp(app);
+
+  if (!shortcut) {
+    const discovered = apps.listApps().length;
+    const detail =
+      discovered > 0
+        ? `I found ${discovered} installed app${discovered === 1 ? "" : "s"} but none match "${app
+            .trim()}".`
+        : "I could not find any app shortcuts on this computer to search.";
+
+    throw httpError(400, `I could not find "${app.trim()}". ${detail}`);
+  }
+
+  try {
+    await open(shortcut.path);
+  } catch {
+    throw httpError(503, `Could not launch ${shortcut.label} on this computer`);
+  }
+
+  return shortcut.label;
 };
 
 export const takeScreenshot = async () => {

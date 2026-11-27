@@ -28,7 +28,7 @@ containers that stay idle-cheap.
 |------|----------------|
 | **Overview** | A dashboard: a voice/typed command center, system status (platform, cores, memory, uptime and battery percentage), your Desktop/Documents/Downloads counts, open reminders, recent storage files and shortcuts. |
 | **Assistant (chat)** | Plain-English or spoken commands for time and date, system status, reminders, stored files, your real Desktop/Documents/Downloads, launching apps or websites, searching the web, and finding and opening real files by name. |
-| **Automation** | Opens http/https websites, launches Chrome, VS Code or Calculator, and captures a screenshot. The newest 20 captures are kept and shown in a small gallery. |
+| **Automation** | Opens http/https websites, launches Chrome, VS Code or Calculator, launches any app installed on this computer, and captures a screenshot. The newest 20 captures are kept and shown in a small gallery. |
 | **Files** | A sandboxed workspace for scratch text files inside the app's own storage folder (`server/storage`). You can create folders and files, rename them, delete them, and preview text contents. **This is not your real Desktop, Documents or Downloads.** |
 | **My computer** | A read-only browser for your real Desktop, Documents and Downloads. It lists names, types, sizes and dates and lets you open subfolders, but it cannot create, rename, move or delete anything there. |
 | **Reminders** | A small persisted to-do list. Reminders can be added, marked done or reopened, and deleted. |
@@ -43,6 +43,7 @@ with the browser's speech synthesis (the speaker button mutes them). Other brows
 typing. Useful phrases:
 
 - "open youtube" or "open news.ycombinator.com"
+- "open spotify" or "launch visual studio code" (an app installed on this computer)
 - "find report.pdf", then "open the file" or "open the second one"
 - "search the web for espresso"
 - "remind me to call Sam", then "mark reminder 1 done"
@@ -158,6 +159,7 @@ machine and on loopback.
 | `CORS_ORIGINS` | localhost dev and preview origins | Browser origins allowed to call the API |
 | `ORBIT_DATA_DIR` | `server` | Storage root; files go to `storage/` and screenshots to `screenshots/` |
 | `ORBIT_HOME` | the current user's home | Home folder used by the read-only Desktop, Documents and Downloads browser (useful for tests) |
+| `ORBIT_APPS_DIR` | the platform's shortcut folders | Shortcut folders scanned for installed apps, separated by the platform path separator (useful for tests) |
 | `VITE_API_TARGET` | `http://localhost:5000` | Proxy target for the dev server |
 | `VITE_API_BASE` | empty | API origin, only when the client is served from a different origin |
 
@@ -195,7 +197,8 @@ orbit-ai-desktop-assistant/
 | POST | `/api/chat` | Ask the local assistant |
 | GET | `/api/system/info` | Platform, CPU, memory, uptime and battery |
 | POST | `/api/automation/open-website` | Open an http/https URL |
-| POST | `/api/automation/open-app` | Launch Chrome, VS Code or Calculator |
+| POST | `/api/automation/open-app` | Launch a built-in app or one installed on this computer |
+| GET | `/api/automation/apps` | List the app shortcuts found on this computer |
 | POST | `/api/automation/screenshot` | Capture the screen |
 | GET | `/api/automation/screenshots` | List the newest captures |
 | GET | `/api/files` | List storage entries |
@@ -221,7 +224,7 @@ input, `403` disallowed origin, `404` missing resource, `409` conflict, `413` pr
 - `remind me to call Sam`, `list my reminders`
 - `list files`, `read notes.txt`
 - `what's in my downloads`, `list documents/Projects`
-- `open google.com`, `open calculator`
+- `open google.com`, `open calculator`, `open spotify`
 
 The assistant is a deterministic intent matcher, not a language model. Its answers come from the same
 services the UI uses, so anything it reports can be checked on the corresponding page.
@@ -307,8 +310,8 @@ These are known and intentional, not unfinished work:
   gets a suggestion list rather than an answer. There is no local LLM backend.
 - **Single user, no authentication.** The API trusts whoever can reach it. Keep it on loopback; do
   not expose port 5000 to a network. CORS limits browsers, not direct HTTP clients.
-- **App launching is a small allowlist.** Only Chrome, VS Code and Calculator are supported. Commands
-  differ by platform and fail with a `503` when the app is not installed or not on `PATH`.
+- **App launching depends on shortcuts.** Chrome, VS Code and Calculator use fixed commands; anything
+  else must have a Start Menu (Windows) or `/Applications` (macOS) shortcut, so portable apps, store-only installers and Linux desktops are not found.
 - **Screenshots need an interactive desktop.** Headless servers, most containers, some Wayland
   sessions and locked screens may fail or capture nothing useful.
 - **The real-folder browser is read-only on purpose.** There is no endpoint to create, rename, move
