@@ -84,7 +84,11 @@ app.get("/api", (req, res) => {
         "PATCH /api/files/rename-file",
         "DELETE /api/files/delete-file",
       ],
-      laptop: ["GET /api/laptop", "GET /api/laptop/:folder?path=... (read-only)"],
+      laptop: [
+        "GET /api/laptop",
+        "GET /api/laptop/search?q=... (read-only)",
+        "GET /api/laptop/:folder?path=... (read-only)",
+      ],
       reminders: [
         "GET /api/reminders",
         "POST /api/reminders",

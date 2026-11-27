@@ -2,10 +2,13 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 
-import { assert } from "../../utils/http.js";
+import { assert, httpError } from "../../utils/http.js";
 
 // Reads only. This module deliberately exposes no create, rename or delete functions.
 const MAX_ENTRIES = 500;
+const SEARCH_MAX_RESULTS = 10;
+const SEARCH_MAX_DEPTH = 4;
+const SEARCH_MAX_VISITED = 4000;
 
 const FOLDER_DEFINITIONS = [
   {
@@ -155,4 +158,116 @@ export const listFolder = async (key, subPath = "") => {
     truncated,
     readOnly: true,
   };
+};
+
+// Cheap, bounded filename search across the three read-only folders.
+export const searchEntries = (query, limit = SEARCH_MAX_RESULTS) => {
+  const term = typeof query === "string" ? query.trim().toLowerCase() : "";
+
+  assert(term.length >= 2, 400, "A search needs at least two characters");
+
+  const matches = [];
+  let visited = 0;
+
+  const walk = (directory, depth, definition) => {
+    if (depth > SEARCH_MAX_DEPTH || visited >= SEARCH_MAX_VISITED) {
+      return;
+    }
+
+    let dirents;
+
+    try {
+      dirents = fs.readdirSync(directory, { withFileTypes: true });
+    } catch {
+      return;
+    }
+
+    for (const dirent of dirents) {
+      if (matches.length >= limit || visited >= SEARCH_MAX_VISITED) {
+        return;
+      }
+
+      // Never follow links out of the selected folder
+      if (dirent.isSymbolicLink()) {
+        continue;
+      }
+
+      const entryPath = path.join(directory, dirent.name);
+      visited += 1;
+
+      let stat;
+
+      try {
+        stat = fs.lstatSync(entryPath);
+      } catch {
+        continue;
+      }
+
+      if (stat.isDirectory()) {
+        walk(entryPath, depth + 1, definition);
+        continue;
+      }
+
+      if (!stat.isFile() || !dirent.name.toLowerCase().includes(term)) {
+        continue;
+      }
+
+      matches.push({
+        name: dirent.name,
+        path: entryPath,
+        folder: definition.label,
+        size: stat.size,
+        modified: stat.mtime.toISOString(),
+      });
+    }
+  };
+
+  for (const definition of FOLDER_DEFINITIONS) {
+    const root = resolveRoot(definition);
+
+    if (!root.exists) {
+      continue;
+    }
+
+    walk(root.path, 0, definition);
+
+    if (matches.length >= limit) {
+      break;
+    }
+  }
+
+  // Shorter names usually mean a better match, so float them to the top
+  return matches.sort((a, b) => a.name.length - b.name.length).slice(0, limit);
+};
+
+// Resolve a user-supplied path and prove it is a real file inside an allowed folder.
+export const resolveAllowedPath = (target) => {
+  assert(typeof target === "string" && target.trim(), 400, "A file path is required");
+
+  const resolved = path.resolve(target.trim());
+
+  for (const definition of FOLDER_DEFINITIONS) {
+    const root = resolveRoot(definition);
+
+    if (!root.exists) {
+      continue;
+    }
+
+    const realRoot = fs.realpathSync(root.path);
+
+    if (!isInside(realRoot, resolved)) {
+      continue;
+    }
+
+    assert(fs.existsSync(resolved), 404, "That file no longer exists");
+
+    const real = fs.realpathSync(resolved);
+
+    assert(isInside(realRoot, real), 400, "Path must stay inside the folder");
+    assert(fs.statSync(real).isFile(), 400, "That path is not a file");
+
+    return real;
+  }
+
+  throw httpError(400, "I can only open files inside Desktop, Documents or Downloads");
 };

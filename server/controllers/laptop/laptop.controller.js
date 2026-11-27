@@ -9,3 +9,10 @@ export const listFolder = async (req, res) => {
 
   res.json({ success: true, ...listing });
 };
+
+export const searchFiles = async (req, res) => {
+  const query = typeof req.query.q === "string" ? req.query.q : "";
+  const matches = laptopService.searchEntries(query);
+
+  res.json({ success: true, query: query.trim(), matches });
+};
