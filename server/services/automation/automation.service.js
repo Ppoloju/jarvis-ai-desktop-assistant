@@ -5,6 +5,7 @@ import path from "path";
 import open from "open";
 
 import { assert, httpError } from "../../utils/http.js";
+import { resolveAllowedPath } from "../laptop/laptop.service.js";
 
 const execFileAsync = promisify(execFile);
 const execAsync = promisify(exec);
@@ -96,6 +97,29 @@ export const launchWebsite = async (url) => {
     await open(target);
   } catch {
     throw httpError(503, "Could not open a browser in this environment");
+  }
+
+  return target;
+};
+
+export const openWebSearch = async (query) => {
+  assert(typeof query === "string" && query.trim(), 400, "A search query is required");
+
+  return launchWebsite(`https://www.google.com/search?q=${encodeURIComponent(query.trim())}`);
+};
+
+// Opens a file on the desktop, but only one that lives inside the read-only folders.
+export const openFile = async (filePath) => {
+  const target = resolveAllowedPath(filePath);
+
+  if (!hasDesktop()) {
+    throw NO_DESKTOP("Opening a file");
+  }
+
+  try {
+    await open(target);
+  } catch {
+    throw httpError(503, "Could not open that file on this computer");
   }
 
   return target;
