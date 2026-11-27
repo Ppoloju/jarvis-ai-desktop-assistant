@@ -136,46 +136,32 @@ export const resolveAppName = (app) => {
   const name = app.trim().toLowerCase();
 
   if (SUPPORTED_APPS.has(name)) {
-    return { kind: "builtin", key: name, label: APP_LABELS[name] };
+    return { kind: "builtin", name, label: APP_LABELS[name] };
   }
 
-  const shortcut = apps.resolveApp(app);
+  const shortcut = apps.resolveApp(name);
 
-  return shortcut ? { kind: "shortcut", key: shortcut.name, label: shortcut.label } : null;
+  return shortcut ? { kind: "shortcut", ...shortcut } : null;
 };
 
 export const listInstalledApps = () => apps.listPublicApps();
 
+const BUILTIN_COMMANDS = {
+  chrome: () => (process.platform === "win32" ? "start chrome" : "open -a 'Google Chrome'"),
+  vscode: () => "code",
+  calculator: () => (process.platform === "win32" ? "calc" : "open -a Calculator"),
+};
+
 export const launchApp = async (app) => {
   assert(typeof app === "string" && app.trim(), 400, "An app name is required");
-
-  const name = app.trim().toLowerCase();
 
   if (!hasDesktop()) {
     throw NO_DESKTOP("Launching applications");
   }
 
-  if (SUPPORTED_APPS.has(name)) {
-    const isWindows = process.platform === "win32";
+  const target = resolveAppName(app);
 
-    const commands = {
-      chrome: isWindows ? "start chrome" : "open -a 'Google Chrome'",
-      vscode: "code",
-      calculator: isWindows ? "calc" : "open -a Calculator",
-    };
-
-    try {
-      await execAsync(commands[name], { timeout: LAUNCH_TIMEOUT_MS });
-    } catch {
-      throw httpError(503, `Could not launch ${APP_LABELS[name]} on this computer`);
-    }
-
-    return APP_LABELS[name];
-  }
-
-  const shortcut = apps.resolveApp(app);
-
-  if (!shortcut) {
+  if (!target) {
     const discovered = apps.listApps().length;
     const detail =
       discovered > 0
@@ -187,12 +173,16 @@ export const launchApp = async (app) => {
   }
 
   try {
-    await open(shortcut.path);
+    if (target.kind === "builtin") {
+      await execAsync(BUILTIN_COMMANDS[target.name](), { timeout: LAUNCH_TIMEOUT_MS });
+    } else {
+      await open(target.path);
+    }
   } catch {
-    throw httpError(503, `Could not launch ${shortcut.label} on this computer`);
+    throw httpError(503, `Could not launch ${target.label} on this computer`);
   }
 
-  return shortcut.label;
+  return target.label;
 };
 
 export const takeScreenshot = async () => {
