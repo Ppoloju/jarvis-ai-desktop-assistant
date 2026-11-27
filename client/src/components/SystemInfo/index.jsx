@@ -33,8 +33,8 @@ export default function SystemInfo() {
 
   if (!info) {
     return (
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
-        {[0, 1, 2, 3].map((key) => (
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-5">
+        {[0, 1, 2, 3, 4].map((key) => (
           <div key={key} className="h-24 animate-pulse rounded-xl border border-slate-200 bg-white" />
         ))}
       </div>
@@ -42,7 +42,7 @@ export default function SystemInfo() {
   }
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-5">
       <Stat icon="app" label="Platform" value={info.platform} hint="Local runtime" />
       <Stat icon="cpu" label="CPU cores" value={info.cpuCount} hint="Available" />
       <Stat
@@ -52,6 +52,20 @@ export default function SystemInfo() {
         hint={`${info.totalMemory} total`}
       />
       <Stat icon="clock" label="Uptime" value={info.uptime} hint="Since last start" />
+      <Stat
+        icon="battery"
+        label="Battery"
+        value={info.battery?.available ? `${info.battery.percentage}%` : "N/A"}
+        hint={
+          !info.battery?.available
+            ? "No battery detected"
+            : info.battery.charging
+              ? "Charging"
+              : info.battery.pluggedIn
+                ? "Plugged in"
+                : "On battery"
+        }
+      />
     </div>
   );
 }
