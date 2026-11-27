@@ -68,6 +68,11 @@ test("returns system info", async () => {
   assert.equal(response.status, 200);
   assert.ok(body.platform);
   assert.ok(body.cpuCount > 0);
+  assert.equal(typeof body.battery.available, "boolean");
+
+  if (body.battery.available) {
+    assert.ok(body.battery.percentage >= 0 && body.battery.percentage <= 100);
+  }
 });
 
 test("answers chat messages and rejects empty ones", async () => {
@@ -369,4 +374,28 @@ test("assistant answers questions about laptop folders", async () => {
   const desktop = await (await postJson("/api/chat", { message: "show me my desktop" })).json();
 
   assert.match(desktop.reply, /Projects/);
+});
+
+test("searches the laptop folders by file name", async () => {
+  const found = await (await call("/api/laptop/search?q=report")).json();
+
+  assert.equal(found.matches[0].name, "report.pdf");
+
+  const nested = await (await call("/api/laptop/search?q=notes")).json();
+
+  assert.ok(nested.matches.some((match) => match.name === "notes.txt"));
+  assert.equal((await call("/api/laptop/search?q=a")).status, 400);
+});
+
+test("assistant finds files and offers to open them", async () => {
+  const found = await (await postJson("/api/chat", { message: "find report.pdf" })).json();
+
+  assert.match(found.reply, /report\.pdf/);
+  assert.match(found.reply, /open the first one/i);
+
+  const missing = await (
+    await postJson("/api/chat", { message: "find zzzz-nope" })
+  ).json();
+
+  assert.match(missing.reply, /could not find/i);
 });

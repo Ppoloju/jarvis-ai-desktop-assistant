@@ -6,12 +6,12 @@ const buttonBase =
 
 const buttonVariants = {
   primary:
-    "bg-indigo-600 text-white shadow-sm hover:bg-indigo-700 disabled:bg-slate-200 disabled:text-slate-500 disabled:shadow-none",
+    "bg-indigo-600 text-white shadow-sm hover:bg-indigo-700 disabled:bg-slate-200 disabled:text-slate-600 disabled:shadow-none",
   secondary:
-    "border border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-50 disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400 disabled:shadow-none",
+    "border border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-50 disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-600 disabled:shadow-none",
   ghost: "text-slate-600 hover:bg-slate-100 disabled:opacity-50",
   danger:
-    "border border-red-200 bg-white text-red-600 hover:bg-red-50 disabled:border-slate-200 disabled:bg-white disabled:text-slate-400",
+    "border border-red-200 bg-white text-red-600 hover:bg-red-50 disabled:border-slate-200 disabled:bg-white disabled:text-slate-600",
 };
 
 const buttonSizes = {
@@ -98,13 +98,15 @@ export function Card({ title, description, action, children, className = "" }) {
     <section className={`flex flex-col rounded-xl border border-slate-200 bg-white shadow-sm ${className}`}>
       {(title || action) && (
         <header className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4">
-          <div>
+          <div className="min-w-0">
             {title && (
               <h2 className="text-sm font-semibold tracking-tight text-slate-900">{title}</h2>
             )}
-            {description && <p className="mt-0.5 text-sm text-slate-500">{description}</p>}
+            {description && (
+              <p className="mt-0.5 break-words text-sm text-slate-500">{description}</p>
+            )}
           </div>
-          {action}
+          {action && <div className="shrink-0">{action}</div>}
         </header>
       )}
       <div className="flex-1 px-5 py-4">{children}</div>

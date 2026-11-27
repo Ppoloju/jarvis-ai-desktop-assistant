@@ -129,7 +129,7 @@ export default function Computer() {
                     <span className="block text-sm font-semibold text-slate-900">
                       {folder.label}
                     </span>
-                    <span className="block truncate text-xs text-slate-500">
+                    <span className="block truncate text-xs text-slate-600">
                       {folder.exists
                         ? folder.count === null
                           ? "Ready"
