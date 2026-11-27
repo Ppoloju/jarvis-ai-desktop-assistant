@@ -1,5 +1,7 @@
 # Orbit Desktop Assistant
 
+[![CI](https://github.com/Ppoloju/orbit-ai-desktop-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/Ppoloju/orbit-ai-desktop-assistant/actions/workflows/ci.yml)
+
 A local-first desktop assistant. A React dashboard talks to a small Node/Express API that answers
 questions, launches apps and websites, captures screenshots, manages scratch files and keeps
 reminders. There is no cloud account, API key or external service: everything runs on your machine
@@ -24,14 +26,30 @@ containers that stay idle-cheap.
 
 | Area | What it is for |
 |------|----------------|
-| **Overview** | System status, quick links to the other pages and the chat box. |
-| **Assistant (chat)** | Plain-English commands for time and date, system status, reminders, stored files, your real Desktop/Documents/Downloads, and launching apps or websites. |
+| **Overview** | A dashboard: a voice/typed command center, system status (platform, cores, memory, uptime and battery percentage), your Desktop/Documents/Downloads counts, open reminders, recent storage files and shortcuts. |
+| **Assistant (chat)** | Plain-English or spoken commands for time and date, system status, reminders, stored files, your real Desktop/Documents/Downloads, launching apps or websites, searching the web, and finding and opening real files by name. |
 | **Automation** | Opens http/https websites, launches Chrome, VS Code or Calculator, and captures a screenshot. The newest 20 captures are kept and shown in a small gallery. |
 | **Files** | A sandboxed workspace for scratch text files inside the app's own storage folder (`server/storage`). You can create folders and files, rename them, delete them, and preview text contents. **This is not your real Desktop, Documents or Downloads.** |
 | **My computer** | A read-only browser for your real Desktop, Documents and Downloads. It lists names, types, sizes and dates and lets you open subfolders, but it cannot create, rename, move or delete anything there. |
 | **Reminders** | A small persisted to-do list. Reminders can be added, marked done or reopened, and deleted. |
 | **History** | Conversation history saved in this browser, with a one-click clear action. |
 | **Settings** | App information and conversation-history controls. |
+
+### Voice commands
+
+The Overview chat box takes spoken commands in Chrome or Edge, where the browser provides speech
+recognition. Click the mic, speak, and the transcript is sent automatically; replies are read aloud
+with the browser's speech synthesis (the speaker button mutes them). Other browsers fall back to
+typing. Useful phrases:
+
+- "open youtube" or "open news.ycombinator.com"
+- "find report.pdf", then "open the file" or "open the second one"
+- "search the web for espresso"
+- "remind me to call Sam", then "mark reminder 1 done"
+- "what's in my downloads", "system info"
+
+The API only ever receives the recognised text. Some browsers send the microphone audio to their own
+speech service to do the recognition, so check your browser's privacy settings if that matters.
 
 ### Why "Files" exists
 
@@ -175,7 +193,7 @@ orbit-ai-desktop-assistant/
 | GET | `/` | Health message |
 | GET | `/api` | Index of available endpoints |
 | POST | `/api/chat` | Ask the local assistant |
-| GET | `/api/system/info` | Platform, CPU, memory and uptime |
+| GET | `/api/system/info` | Platform, CPU, memory, uptime and battery |
 | POST | `/api/automation/open-website` | Open an http/https URL |
 | POST | `/api/automation/open-app` | Launch Chrome, VS Code or Calculator |
 | POST | `/api/automation/screenshot` | Capture the screen |
@@ -239,7 +257,7 @@ Some features need your real desktop and cannot work in a Linux container:
 
 - Screenshot, open website and open app return `503` with a "no desktop display" message instead of
   failing silently.
-- System info reports the container's platform and memory, not your machine's.
+- System info reports the container's platform and memory, not your machine's, and no battery is visible, so the battery card shows `N/A`.
 - Desktop, Documents and Downloads are the container user's home, not yours.
 
 To keep those features, run the API on the host and containerise only the frontend:
@@ -311,6 +329,17 @@ These are known and intentional, not unfinished work:
   launching and OneDrive folder discovery were exercised mainly on Windows.
 - **No automated UI tests.** The server API has tests; the React pages were checked manually in a
   browser.
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on every push to `main` and on every pull request:
+
+- **Tests job**, on a matrix of `ubuntu-latest` / `windows-latest` and Node 20 / 22: `npm ci`
+  in both packages, `npm run lint` in both, `npm test` for the API, then `npm run build` for the
+  dashboard. Windows is in the matrix because screenshots, OneDrive folder discovery and app
+  launching are Windows-specific paths that a Linux-only pipeline would never exercise.
+- **Docker job**, after the tests pass: builds both images (`server` and `client`) so a broken
+  Dockerfile or a missing lockfile entry fails the build instead of the first deployment.
 
 ## Tests
 
