@@ -2,46 +2,59 @@
 
 [![CI](https://github.com/Ppoloju/orbit-ai-desktop-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/Ppoloju/orbit-ai-desktop-assistant/actions/workflows/ci.yml)
 
-A local-first desktop assistant. A React dashboard talks to a small Node/Express API that answers
-questions, launches apps and websites, captures screenshots, manages scratch files and keeps
-reminders. No account or cloud sync is needed: everything runs and is stored on your machine. A
-local model through Ollama keeps free-form chat on this computer too, and an optional AI key is the
-only thing that can send a message off it.
+Orbit is a local-first desktop assistant for one person on one computer. A React dashboard talks to
+a small Node/Express API on loopback that answers questions, launches apps and websites, browses your
+real Desktop, Documents and Downloads, keeps scratch files and reminders, and takes screenshots.
+Everything runs and is stored on your machine: there is no account, no telemetry and no cloud sync.
+Free-form chat stays local too when Ollama is running; an optional AI key is the only thing that can
+send a message off the computer.
 
-Orbit is the new name for this project (it was previously called "Jarvis AI Desktop Assistant").
-"Orbit" is meant to suggest something that stays close to your machine and quietly handles the
-small things, without pretending to be a person in the cloud.
+Orbit was previously called "Jarvis AI Desktop Assistant". The name is meant to suggest something
+that stays close to your machine and quietly handles the small things.
 
 [Report a Bug](https://github.com/Ppoloju/orbit-ai-desktop-assistant/issues)
 
-## About the Project
+## What Orbit is
 
-Most assistants are cloud services: they need an account, an API key and an internet connection, and
-they see everything you type. Orbit explores the opposite approach. The intent engine is
-deterministic and runs locally, automation uses the host desktop directly, and all data stays on
-disk. Building it meant solving practical problems around filesystem confinement, cross-platform
-folder discovery, a CORS allowlist, predictable error responses and keeping a two-process app idle-cheap.
+- **A local web app, not a cloud service.** Two processes on `127.0.0.1`: a Vite/React dashboard and
+  an Express API. Nothing is deployed and nothing phones home.
+- **A command engine first, a model second.** Requests like "open youtube", "find report.pdf" or
+  "remind me to stretch in 20 minutes" are matched deterministically and performed against the real
+  desktop. Only text that matches no command is sent to a model for a normal answer.
+- **A single-user tool.** The API trusts whoever can reach it on loopback. It rejects requests
+  addressed to other hostnames, but it is not a multiuser or network service.
 
-## What Each Feature Does
+### Design principles
+
+- **Deterministic before generative.** Anything the app can do as a command is done as a command, so
+  it is predictable and testable — and works with no model installed.
+- **Local by default.** Code, data and chat history stay on disk. The remote AI path is optional and
+  clearly separated.
+- **Read-only means read-only.** Desktop, Documents and Downloads have no write endpoints at all.
+  Orbit's own scratch space is a separate, sandboxed folder.
+- **Honest about limits.** No pretend actions, no silent fallbacks, no claims that a model is present
+  when it is not. The UI states its constraints, including voice in Electron windows.
+
+## What it does
 
 | Area | What it is for |
 |------|----------------|
-| **Overview** | A dashboard: a voice/typed command center, system status (platform, cores, memory, uptime and battery percentage), your Desktop/Documents/Downloads counts, open reminders, recent storage files and shortcuts. |
-| **Assistant (chat)** | Plain-English or spoken commands for time and date, system status, reminders, stored files, your real Desktop/Documents/Downloads, launching apps or websites, searching the web, and finding and opening real files by name. |
-| **Automation** | Opens http/https websites, launches Chrome, VS Code or Calculator, launches any app installed on this computer, and captures a screenshot. The newest 20 captures are kept and shown in a small gallery. |
-| **Files** | A sandboxed workspace for scratch text files inside the app's own storage folder (`server/storage`). You can create folders and files, rename them, delete them, and preview text contents. **This is not your real Desktop, Documents or Downloads.** |
-| **My computer** | A read-only browser for your real Desktop, Documents and Downloads. It lists names, types, sizes and dates and lets you open subfolders, but it cannot create, rename, move or delete anything there. |
-| **Free-form chat** | Anything the command list does not cover goes to a model: Ollama on this computer when it is running (no key, nothing leaves the machine), otherwise a remote OpenAI-compatible provider when `AI_API_KEY` is set. The last few turns are kept as local context, and each reply is tagged **AI**. |
-| **Reminders** | A persisted to-do list with optional due times ("in 20 minutes", "at 5pm", "tomorrow at 9am"). While the API is running, a background check announces due reminders with a desktop notification. |
+| **Overview** | A command center: voice or typed input, system status (platform, cores, memory, uptime, battery), Desktop/Documents/Downloads counts, open reminders, recent stored files and shortcuts. |
+| **Assistant (chat)** | Plain-English or spoken commands for time and date, system status, reminders, stored files, your real folders, launching apps or websites, web search, and finding and opening real files by name. |
+| **Automation** | Opens http/https websites, launches Chrome, VS Code or Calculator, launches any app installed on this computer, and captures a screenshot. A small gallery shows recent captures. |
+| **Files** | A sandboxed scratch space inside `server/storage`: create folders and text files, rename them, delete them and preview contents. **This is not your real Desktop, Documents or Downloads.** |
+| **My computer** | A read-only browser for your real Desktop, Documents and Downloads. It shows names, types, sizes and dates and opens subfolders, but cannot create, rename, move or delete anything there. |
+| **Free-form chat** | Anything the command list does not cover goes to a model: Ollama on this computer when it is running (no key, nothing leaves the machine), otherwise a remote OpenAI-compatible provider when `AI_API_KEY` is set. Recent turns are kept as local context, and each model reply is tagged **AI**. |
+| **Reminders** | A persisted to-do list with optional due times ("in 20 minutes", "at 5pm", "tomorrow at 9am"). While the API runs, a background check announces due reminders with a desktop notification. |
 | **History** | Conversation history saved in this browser, with a one-click clear action. |
-| **Settings** | App information, AI model status with a local-model picker, one-click database backups, an "Open data folder" button and conversation-history controls. |
+| **Settings** | App information, AI status with a local-model picker, one-click database backups, an "Open data folder" button and conversation-history controls. |
 
 ### Voice commands
 
-The Overview chat box takes spoken commands in Chrome or Edge, where the browser provides speech
+The chat box accepts spoken commands in Chrome or Edge, where the browser provides speech
 recognition. Click the mic, speak, and the transcript is sent automatically; replies are read aloud
 with the browser's speech synthesis (the speaker button mutes them). Other browsers fall back to
-typing. Useful phrases:
+typing.
 
 - "open youtube" or "open news.ycombinator.com"
 - "open spotify" or "launch visual studio code" (an app installed on this computer)
@@ -49,53 +62,82 @@ typing. Useful phrases:
 - "search the web for espresso"
 - "remind me to call Sam", then "mark reminder 1 done"
 - "remind me to stretch in 20 minutes" (a desktop notification appears when it comes due)
-- "what's in my downloads", "system info"
+- "what's in my downloads", "system info", "what can you do"
 
-- Voice input needs Chrome or Edge with microphone access. In an Electron window (including the packaged desktop app) the microphone is not granted and there is no bundled speech service, so typing is the only input there — the mic button says so when you click it; open
-`http://localhost:5173` in Chrome to talk to it.
-
-The API only ever receives the recognised text. Some browsers send the microphone audio to their own
-speech service to do the recognition, so check your browser's privacy settings if that matters.
+Voice input needs a microphone and, in practice, Chrome or Edge. If the dashboard is opened inside an
+Electron-based window, the microphone is blocked there and there is no bundled speech service, so the
+mic button explains that and typing is the only input. Open the same address in Chrome or Edge to
+talk to it. The API only ever receives the recognised text; some browsers send microphone audio to
+their own speech service for recognition, so check your browser's privacy settings if that matters.
 
 ### Why "Files" exists
 
 Files is deliberately separate from My computer. It gives the assistant a safe place to create and
-read its own documents without ever touching your real folders. Every path is resolved and confined
-to `server/storage`, so `../` traversal is rejected. Since the feature now supports previews, a file
-you create there can be read back in the UI or with chat ("read notes.txt") without opening another
-application.
+read its own documents without touching real folders. Every path is resolved and confined to
+`server/storage`, so `../` traversal is rejected. A note created there can be read back in the UI or
+with chat ("read notes.txt") without opening another application.
 
-## What You Can Use It For
+### Typical uses
 
-Orbit is built for one person on one machine. Typical uses:
+- Keep a local scratchpad: create `notes.txt` in Files, then ask "read notes.txt".
+- Look before you share: ask "what's in my downloads" to find an installer, PDF or screenshot.
+- Start your working set: open Chrome, VS Code, Calculator and your usual website from one page.
+- Capture what is on screen for a bug report or a quick record.
+- Track small commitments across restarts, with a notification when one comes due.
+- Check platform, CPU count, memory and uptime without leaving the app.
+- Chat without an account or a key, using a local model.
 
-- **Keep a local scratchpad.** Create `notes.txt` in Files, then ask "read notes.txt" to see it
-  again. Handy for short notes, checklists and snippets that should not live in a cloud app.
-- **Look before you share.** Ask "what's in my downloads" to find the installer, PDF or screenshot
-  you need without opening File Explorer, Finder or a file manager.
-- **Check your desktop and documents at a glance.** The read-only browser shows files, sizes and
-  dates, and opens subfolders. It is safe to leave open because it cannot change anything.
-- **Start your working set.** Open Chrome, VS Code or Calculator and your usual website from one
-  page instead of hunting through the start menu.
-- **Capture what is on screen.** Take a screenshot for a bug report or a quick record; the newest
-  20 captures stay available in the gallery.
-- **Track small commitments.** Add reminders such as "water the plants", mark them done, and find
-  them again after a restart.
-- **Check the machine.** See platform, CPU count, memory and uptime without leaving the app.
-- **Ask without an account.** Everything runs offline: no API key, no telemetry, no cloud history.
+## Technology
 
-It is not a team tool, a scheduler or a remote-access service. Keep it on a trusted single-user
-machine and on loopback.
+| Layer | Choice |
+|-------|--------|
+| **Frontend** | React 19, Vite 8, React Router 7, Tailwind CSS 4 |
+| **Backend** | Node.js (>= 22.13), Express 5, ES modules |
+| **Database** | SQLite via Node's built-in `node:sqlite` (`DatabaseSync`, WAL) at `server/storage/orbit.db` — tables `reminders`, `chat_turns`, `settings` |
+| **AI** | Ollama at `127.0.0.1:11434` through its OpenAI-compatible `/v1/chat/completions` (default, no key); optional remote OpenAI-compatible provider via `fetch` when `AI_API_KEY` is set |
+| **OS integration** | `open` for URLs, files and folders; PowerShell for Windows screenshots; `screenshot-desktop` elsewhere; Node child processes |
+| **Voice** | Browser Web Speech API (speech recognition and synthesis) in Chrome or Edge |
+| **Tooling** | ESLint 10, Node's built-in test runner (`node --test`), GitHub Actions CI |
+| **Runtime shape** | Two local processes — Vite for the dashboard, plain Node for the API — on loopback only |
 
-## Built With
+Request flow during development:
 
-- **Frontend:** React 19, Vite, React Router, Tailwind CSS v4
-- **Backend:** Node.js (>= 22.13), Express 5, ES modules
-- **Storage:** SQLite at `server/storage/orbit.db` (tables `reminders` and `chat_turns`) plus your files under `server/storage`; chat history in browser localStorage
-- **Automation:** `open`, PowerShell (Windows screenshots), `screenshot-desktop` (other desktops),
-  Node child processes
-- **Tooling:** ESLint, Node's built-in test runner
-- **Deployment:** two local processes (Vite for the dashboard, Node for the API)
+```text
+Browser (React dashboard, :5173)
+   └── /api, /screenshots proxied by Vite
+         └── Express API (:5000, 127.0.0.1)
+               ├── SQLite (reminders, chat turns, settings)
+               ├── filesystem (sandbox, real folders, screenshots)
+               ├── OS (open, PowerShell, child processes)
+               └── model (Ollama on loopback, or a remote key if set)
+```
+
+There is no bundler on the server and no native SQLite dependency: the API runs `node server.js`
+directly, and the dashboard is a static Vite build.
+
+## Scope
+
+**In scope — what Orbit is built to do**
+
+- Deterministic desktop commands: time, system status, reminders, files, real folders, app and
+  website launching, web search, screenshots.
+- A safe sandbox for assistant-created files, separate from real user folders.
+- Read-only access to Desktop, Documents and Downloads.
+- Local persistence for reminders, chat memory and preferences, with one-click backups.
+- Optional free-form chat that prefers a local model and can use a remote provider.
+- A small, focused dashboard with no sign-in and no background service.
+
+**Out of scope — deliberately not built**
+
+- Accounts, multiuser access, cloud sync, mobile or hosted web deployment.
+- An agent that clicks, types, reads the screen or acts on its own. Orbit only reacts to commands and
+  never claims an action it did not perform.
+- Background automation on a schedule, integrations with third-party services, or a plugin system.
+- A packaged installer, tray icon, autostart or an always-running daemon.
+- Analytics, telemetry, crash reporting and remote configuration.
+
+Orbit is for a trusted, single-user machine on loopback. It is not a team tool, a scheduler, a
+remote-access service or a general-purpose automation platform.
 
 ## Getting Started
 
@@ -104,6 +146,7 @@ machine and on loopback.
 - Node.js 22.13 or newer (the API uses Node's built-in SQLite)
 - npm
 - An interactive desktop session, for screenshots and app launching
+- Optional: [Ollama](https://ollama.com) for free-form chat without an API key
 
 ### Installation
 
@@ -128,7 +171,15 @@ machine and on loopback.
    cp client/.env.example client/.env
    ```
 
-4. Start the API and the dashboard in two terminals:
+4. Optional: set up local chat. Start Ollama, then pull a model:
+
+   ```bash
+   ollama pull llama3.2
+   ```
+
+   Orbit detects it automatically. Pick a different installed model in **Settings → AI model**.
+
+5. Start the API and the dashboard in two terminals:
 
    ```bash
    cd server && npm run dev
@@ -140,6 +191,7 @@ machine and on loopback.
 
    The dashboard runs at http://localhost:5173 and the API at http://localhost:5000. Vite proxies
    `/api` and `/screenshots` to the backend, so the browser uses a single origin during development.
+   Use `npm start` in `server` for a plain Node process without nodemon.
 
 ### Scripts
 
@@ -161,7 +213,7 @@ machine and on loopback.
 | `PORT` | `5000` | API port |
 | `HOST` | `127.0.0.1` | Interface the API binds to |
 | `CORS_ORIGINS` | localhost dev and preview origins | Browser origins allowed to call the API |
-| `ORBIT_DATA_DIR` | `server` | Storage root; files go to `storage/` and screenshots to `screenshots/` |
+| `ORBIT_DATA_DIR` | `server` | Storage root; files go to `storage/`, screenshots to `screenshots/` |
 | `ORBIT_HOME` | the current user's home | Home folder used by the read-only Desktop, Documents and Downloads browser (useful for tests) |
 | `ORBIT_APPS_DIR` | the platform's shortcut folders | Shortcut folders scanned for installed apps, separated by the platform path separator (useful for tests) |
 | `ORBIT_NO_NOTIFY` | unset | Set to `1` to suppress desktop notifications (used by the tests) |
@@ -174,23 +226,28 @@ machine and on loopback.
 | `VITE_API_TARGET` | `http://localhost:5000` | Proxy target for the dev server |
 | `VITE_API_BASE` | empty | API origin, only when the client is served from a different origin |
 
+A model chosen in Settings is stored in the database and wins over `OLLAMA_MODEL`. If that model is
+later uninstalled, the picker still lists the installed models and marks the saved one "(not
+installed)"; choose **Automatic** or another model to resume chat.
+
 ## Where the data lives
 
 Orbit keeps everything under `server/storage` (or `$ORBIT_DATA_DIR/storage`):
 
-- `orbit.db` — a SQLite database created on first start. Table `reminders` holds the text, due time
-  and done state; table `chat_turns` holds the last 24 messages that give the model its context.
+- `orbit.db` — a SQLite database created on first start. `reminders` holds text, due time and done
+  state; `chat_turns` holds the last 24 messages that give the model its context; `settings` holds
+  preferences such as the chosen local model.
 - Your Files entries, and `screenshots/` next to `storage/` for captures.
 - `backups/` next to `storage/` for snapshots taken from Settings.
 
 To back up reminders and memory, open **Settings → Back up now**. It writes a consistent snapshot to
-`backups/` without stopping the API, and the result is an ordinary SQLite file you can copy
-anywhere. Stopping the API first is only needed if you want to copy `orbit.db` by hand. Older
-versions kept data as `reminders.json` and `chat-memory.json`; the first start imports them into the
-database and keeps the old files beside it as `*.json.migrated`.
+`backups/` without stopping the API, and the result is an ordinary SQLite file you can copy anywhere.
+Stopping the API first is only needed if you want to copy `orbit.db` by hand. Older versions kept data
+as `reminders.json` and `chat-memory.json`; the first start imports them into the database and keeps
+the old files beside it as `*.json.migrated`.
 
-To restore a backup, stop the API, delete `storage/orbit.db-wal` and `storage/orbit.db-shm`, then
-copy the chosen file from `backups/` over `storage/orbit.db`.
+To restore a backup, stop the API, delete `storage/orbit.db-wal` and `storage/orbit.db-shm`, then copy
+the chosen file from `backups/` over `storage/orbit.db`.
 
 ## Project Structure
 
@@ -199,19 +256,21 @@ orbit-ai-desktop-assistant/
   client/                     React dashboard
     src/
       components/             Chat, Navbar, Sidebar, SystemInfo, ui
+      hooks/                  useSpeech
       layouts/
       pages/                  Home, Automation, Files, Computer, Reminders, History, Settings
-      services/
-      utils/
+      services/               API client
+      utils/                  history, formatting
   server/                     Express API
     controllers/
-    middlewares/
-    routes/
-    services/                 ai, assistant, automation, db, files, laptop, reminders, system
+    middlewares/              security headers, host check, errors, logging
+    routes/                   automation, files, laptop, reminders, system
+    services/                 ai, assistant, automation, db, files, laptop, reminders, settings, system
     tests/
     utils/
     app.js                    express app, middleware and routes
     server.js                 entrypoint: dotenv, listen and graceful shutdown
+  .github/workflows/ci.yml
   LICENSE
 ```
 
@@ -221,15 +280,20 @@ orbit-ai-desktop-assistant/
 |--------|----------|-------------|
 | GET | `/` | Health message |
 | GET | `/api` | Index of available endpoints |
-| GET | `/api/health` | Status, version, uptime and whether the data folder is writable |
+| GET | `/api/health` | Status, version, uptime, data-folder writability and AI state |
 | POST | `/api/chat` | Ask the local assistant |
-| DELETE | `/api/chat/memory` | Forget the remembered conversation (the Clear button does this) |
+| DELETE | `/api/chat/memory` | Forget the remembered conversation |
 | GET | `/api/system/info` | Platform, CPU, memory, uptime and battery |
+| GET | `/api/system/ai` | AI provider status, installed local models and the saved choice |
+| PUT | `/api/system/ai/model` | Choose a local model, or send `""` for Automatic |
+| GET | `/api/system/backup` | List database backups |
+| POST | `/api/system/backup` | Take a consistent database snapshot |
+| POST | `/api/system/open-data-folder` | Open the data folder in the file manager |
 | POST | `/api/automation/open-website` | Open an http/https URL |
 | POST | `/api/automation/open-app` | Launch a built-in app or one installed on this computer |
 | GET | `/api/automation/apps` | List the app shortcuts found on this computer |
 | POST | `/api/automation/screenshot` | Capture the screen |
-| GET | `/api/automation/screenshots` | List the newest captures |
+| GET | `/api/automation/screenshots` | List recent captures |
 | GET | `/api/files` | List storage entries |
 | GET | `/api/files/content?name=...` | Preview a stored text file (max 256 KB) |
 | POST | `/api/files/create-folder` | Create a folder |
@@ -237,6 +301,7 @@ orbit-ai-desktop-assistant/
 | PATCH | `/api/files/rename-file` | Rename an entry |
 | DELETE | `/api/files/delete-file` | Delete an entry |
 | GET | `/api/laptop` | List the Desktop, Documents and Downloads folders |
+| GET | `/api/laptop/search?q=...` | Search those folders by file name (read-only) |
 | GET | `/api/laptop/:folder?path=...` | List one folder, read-only |
 | GET | `/api/reminders` | List reminders |
 | POST | `/api/reminders` | Create a reminder; a time phrase in the text sets its due time |
@@ -244,8 +309,8 @@ orbit-ai-desktop-assistant/
 | DELETE | `/api/reminders/:id` | Delete a reminder |
 
 Screenshots are served from `/screenshots/<file>`. Errors use real status codes: `400` invalid
-input, `403` disallowed origin, `404` missing resource, `409` conflict, `413` preview too large,
-`415` not a text file, `503` desktop unavailable.
+input, `403` disallowed origin, `404` missing resource, `409` conflict, `413` payload too large, `415`
+not a text file, `503` desktop unavailable.
 
 ### Assistant examples
 
@@ -254,40 +319,10 @@ input, `403` disallowed origin, `404` missing resource, `409` conflict, `413` pr
 - `list files`, `read notes.txt`
 - `what's in my downloads`, `list documents/Projects`
 - `open google.com`, `open calculator`, `open spotify`
+- `find report.pdf`, then `open the first one`
 
 The assistant is a deterministic intent matcher, not a language model. Its answers come from the same
 services the UI uses, so anything it reports can be checked on the corresponding page.
-
-## Challenges
-
-- **Filesystem safety:** user-supplied paths could escape the storage folder. Every path is resolved
-  and checked against the storage root before any read or write, and internal entries such as the
-  database are filtered out of listings. File previews add another read path, so they reuse the
-  same resolver and refuse folders, binary data and oversized files.
-- **Making read-only mean read-only:** the real-folder browser is implemented as a separate service
-  with no create, rename, move or delete functions at all. Its routes are GET-only, so a stray POST
-  or DELETE cannot reach those folders. Symlinks are skipped and paths are resolved with `realpath`
-  so a link cannot quietly point outside the selected folder.
-- **Finding the right folders:** on Windows, Desktop and Documents often live under OneDrive. The
-  service prefers the normal location and falls back to `OneDrive\...`, marking a folder as missing
-  instead of failing when neither exists.
-- **Screenshots across platforms:** the packaged screenshot dependency does not work reliably on
-  Windows, so Windows captures go through a small PowerShell script while other desktops use a
-  worker process. Without a display the API returns an explicit `503` instead of hanging or crashing.
-- **Predictable errors:** controllers shared ad-hoc error handling. A single error middleware plus an
-  `assert` helper now produces consistent JSON responses and keeps internal paths out of them.
-  Invalid JSON is also reported as a clean `400`.
-- **Ambiguous chat input:** a phrase like "remind me to time my run" matches both the time intent and
-  the reminder intent. Reminder creation now runs before the simpler time/date/system checks, and
-  laptop browsing requires both a folder word and a browse word.
-- **Persistent state without a cloud:** reminders and chat memory live in a SQLite database opened
-  with `node:sqlite` and written synchronously, so nothing needs a server or a background service.
-  The trade-off is a newer Node requirement (22.13+) and a single-file database; Settings takes a
-  consistent snapshot while the API is running.
-- **Cheap idle processes:** a Vite dev server and nodemon keep CPU busy. Serving a static build and
-  running plain Node instead brings idle usage close to zero.
-- **Small UI consistency problems:** counts are pluralised in one place, async pages avoid setting
-  state during render, and destructive actions ask for confirmation before deleting anything.
 
 ## Limitations
 
@@ -296,22 +331,25 @@ These are known and intentional, not unfinished work:
 - **Free-form chat is optional.** Commands are deterministic pattern matching. Unmatched messages go
   to Ollama on `127.0.0.1:11434` when a model is installed, and otherwise to a remote
   OpenAI-compatible provider if `AI_API_KEY` is set; only that remote path leaves this computer.
-  Conversation memory is a capped table (`chat_turns`, 24 turns) in the local SQLite database.
-- **Single user, no authentication.** The API trusts whoever can reach it on loopback, which is why it also rejects requests addressed to a non-loopback hostname (DNS rebinding) and sends `no-store` along with conservative security headers. Keep it on loopback; do
-  not expose port 5000 to a network. CORS limits browsers, not direct HTTP clients.
-- **App launching depends on shortcuts.** Chrome, VS Code and Calculator use fixed commands; anything
-  else must have a Start Menu (Windows) or `/Applications` (macOS) shortcut, so portable apps, store-only installers and Linux desktops are not found.
+  Conversation memory is a capped table (`chat_turns`, 24 turns) in the local database.
+- **Single user, no authentication.** The API trusts whoever can reach it on loopback, which is why it
+  also rejects requests addressed to a non-loopback hostname (DNS rebinding) and sends `no-store`
+  along with conservative security headers. Keep it on loopback; do not expose port 5000 to a
+  network. CORS limits browsers, not direct HTTP clients.
 - **Screenshots need an interactive desktop.** Headless servers, most containers, some Wayland
-  sessions and locked screens may fail or capture nothing useful.
-- **The real-folder browser is read-only on purpose.** There is no endpoint to create, rename, move
-  or delete in Desktop, Documents or Downloads, and none is planned.
-- **Folder listings are capped at 500 entries** with no pagination, search or sorting controls beyond
+  sessions and locked screens may fail; the API returns `503` instead of hanging.
+- **App launching depends on shortcuts.** Chrome, VS Code and Calculator use fixed commands; anything
+  else must have a Start Menu (Windows) or `/Applications` (macOS) shortcut, so portable apps,
+  store-only installers and many Linux desktops are not found.
+- **The real-folder browser is read-only on purpose.** There is no endpoint to create, rename, move or
+  delete in Desktop, Documents or Downloads, and none is planned.
+- **Folder listings are capped at 500 entries** with no pagination or sorting controls beyond
   folders-first alphabetical order.
 - **File previews are text only and capped at 256 KB.** Binary files return `415`.
-- **Timed reminders need the API running.** The due-time check lives in the API process, so a
-  reminder only fires while it is up. One that came due while it was off fires at the next start.
-- **History is browser-local.** It is stored in `localStorage` (newest 50 messages), is not synced
-  between browsers, and clearing it cannot be undone.
+- **Timed reminders need the API running.** The due-time check lives in the API process, so a reminder
+  only fires while it is up. One that came due while it was off fires at the next start.
+- **History is browser-local.** It lives in `localStorage` (newest 50 messages), is not synced between
+  browsers, and clearing it cannot be undone.
 - **One API process per data directory.** SQLite handles concurrent readers, but every API instance
   runs its own due-reminder check, so two instances would announce the same reminder twice.
 - **Not a packaged desktop app.** There is no installer or tray icon; it runs as a local web app with
@@ -321,29 +359,27 @@ These are known and intentional, not unfinished work:
 - **No automated UI tests.** The server API has tests; the React pages were checked manually in a
   browser.
 
-## Continuous integration
-
-`.github/workflows/ci.yml` runs on every push to `main` and on every pull request:
-
-- **Tests job**, on a matrix of `ubuntu-latest` / `windows-latest` and Node 22 / 24: `npm ci`
-  in both packages, `npm run lint` in both, `npm test` for the API, then `npm run build` for the
-  dashboard. Windows is in the matrix because screenshots, OneDrive folder discovery and app
-  launching are Windows-specific paths that a Linux-only pipeline would never exercise.
-
-## Tests
+## Tests and Continuous Integration
 
 ```bash
-cd server && npm test     # API and assistant tests
+cd server && npm test     # API, assistant, AI and migration tests
 cd client && npm run lint && npm run build
 ```
+
+`.github/workflows/ci.yml` runs on every push to `main` and on every pull request: `npm ci` in both
+packages, `npm run lint` in both, `npm test` for the API, then `npm run build` for the dashboard, on a
+matrix of `ubuntu-latest` / `windows-latest` and Node 22 / 24. Windows is in the matrix because
+screenshots, OneDrive folder discovery and app launching are Windows-specific paths that a Linux-only
+pipeline would never exercise.
 
 ## Future Work
 
 Not started, and out of scope for this version:
 
-- Optional local model backend for free-form answers
-- Recurring reminders (daily, weekly)
-- Packaged desktop build with a tray icon
+- Recurring reminders (daily, weekly) and snooze
+- Tool calling, so a model can request a deterministic Orbit command instead of only describing it
+- A packaged desktop build with a tray icon and autostart
+- Full-text search over stored files and conversation memory
 
 ## License
 

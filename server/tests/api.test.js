@@ -792,3 +792,65 @@ test("remembers the local model chosen in Settings", async () => {
     ai.clearLocalCache();
   }
 });
+
+test("keeps the model picker when the saved model is uninstalled", async () => {
+  const ai = await import("../services/ai/ai.service.js");
+  const originalFetch = global.fetch;
+  const installed = { models: [{ name: "llama3.2:latest" }, { name: "qwen2.5-coder:7b" }] };
+
+  process.env.ORBIT_DISABLE_OLLAMA = "0";
+  ai.clearLocalCache();
+
+  try {
+    global.fetch = async (url) => {
+      if (String(url).endsWith("/api/tags")) {
+        return new Response(JSON.stringify(installed), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({}), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    };
+
+    // global.fetch is mocked above, so the HTTP calls use the real one.
+    const request = (route, options) => originalFetch(base + route, options);
+    const put = (model) =>
+      request("/api/system/ai/model", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model }),
+      });
+
+    assert.equal((await put("qwen2.5-coder:7b")).status, 200);
+
+    // The saved model is removed from Ollama afterwards.
+    installed.models = [{ name: "llama3.2:latest" }];
+    ai.clearLocalCache();
+
+    const response = await request("/api/system/ai?refresh=1");
+    const status = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(status.configured, false);
+    assert.deepEqual(
+      status.models,
+      ["llama3.2:latest"],
+      "installed models are still reported so Settings keeps the picker"
+    );
+    assert.equal(status.preferred, "qwen2.5-coder:7b", "the missing choice is still shown");
+
+    const reset = await put("");
+
+    assert.equal(reset.status, 200);
+    assert.equal((await reset.json()).model, "llama3.2:latest", "Automatic picks an installed model");
+  } finally {
+    global.fetch = originalFetch;
+    process.env.ORBIT_DISABLE_OLLAMA = "1";
+    ai.clearLocalCache();
+    await ai.setLocalModel("").catch(() => {});
+  }
+});

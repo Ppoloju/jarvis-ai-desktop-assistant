@@ -238,7 +238,7 @@ export default function Settings() {
                 <p className="text-sm text-slate-600">{ai.hint}</p>
               )}
 
-              {ai.provider === "local" && ai.models.length > 0 && (
+              {ai.models && ai.models.length > 0 && (
                 <label className="flex flex-wrap items-center gap-2 text-sm text-slate-600">
                   <span>Local model</span>
                   <select
@@ -249,6 +249,11 @@ export default function Settings() {
                     className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 shadow-sm transition hover:border-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:cursor-not-allowed disabled:bg-slate-50"
                   >
                     <option value="">Automatic</option>
+                    {ai.preferred && !ai.models.includes(ai.preferred) && (
+                      <option value={ai.preferred} disabled>
+                        {ai.preferred} (not installed)
+                      </option>
+                    )}
                     {ai.models.map((name) => (
                       <option key={name} value={name}>
                         {name}
