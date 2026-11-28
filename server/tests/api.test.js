@@ -255,6 +255,7 @@ test("keeps the database and old data files out of the files page", async () => 
   fs.mkdirSync(storageDir, { recursive: true });
   fs.writeFileSync(path.join(storageDir, "reminders.json.tmp"), "{}");
   fs.writeFileSync(path.join(storageDir, "chat-memory.json.migrated"), "{}");
+  fs.writeFileSync(path.join(storageDir, "reminders.json.migrated-1700000000000"), "{}");
 
   const { entries } = await (await call("/api/files")).json();
   const names = entries.map((entry) => entry.name);

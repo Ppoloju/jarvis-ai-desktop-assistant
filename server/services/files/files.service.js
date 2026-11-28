@@ -34,7 +34,7 @@ const ensureStorage = () => fs.mkdirSync(storageDir, { recursive: true });
 // SQLite database and its journal files, plus the old JSON stores an upgrade
 // imported (and their temporary or corrupt copies).
 const INTERNAL_FILE =
-  /^(?:orbit\.db(?:-wal|-shm)?|reminders\.json|chat-memory\.json)(?:\.tmp|\.corrupt-\d+|\.migrated)?$/;
+  /^(?:orbit\.db(?:-wal|-shm)?|reminders\.json|chat-memory\.json)(?:\.tmp|\.corrupt-\d+|\.migrated(?:-\d+)*)?$/;
 
 const byTypeThenName = (a, b) => {
   if (a.type !== b.type) {
