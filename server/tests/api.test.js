@@ -103,6 +103,115 @@ test("returns system info", async () => {
   if (body.battery.available) {
     assert.ok(body.battery.percentage >= 0 && body.battery.percentage <= 100);
   }
+
+  assert.ok(body.disk === null || body.disk.totalBytes > 0, "disk space is reported when available");
+});
+
+test("reports device health and safe steps", async () => {
+  const diagnostics = await import("../services/system/diagnostics.service.js");
+  const device = (overrides = {}) => ({
+    platform: "win32",
+    release: "10.0.22631",
+    arch: "x64",
+    cpuCount: 8,
+    totalMemoryBytes: 16 * 1024 ** 3,
+    freeMemoryBytes: 8 * 1024 ** 3,
+    disk: { freeBytes: 200 * 1024 ** 3, totalBytes: 500 * 1024 ** 3 },
+    uptimeSeconds: 3_600,
+    battery: { available: true, percentage: 80, pluggedIn: true },
+    ...overrides,
+  });
+
+  assert.deepEqual(diagnostics.assess(device()), [], "a healthy machine has nothing to flag");
+
+  const struggling = device({
+    freeMemoryBytes: 0.4 * 1024 ** 3,
+    disk: { freeBytes: 2 * 1024 ** 3, totalBytes: 500 * 1024 ** 3 },
+    uptimeSeconds: 30 * 86_400,
+    battery: { available: true, percentage: 10, pluggedIn: false },
+  });
+  const titles = diagnostics.assess(struggling).map((issue) => issue.title);
+
+  assert.ok(titles.some((title) => /memory/i.test(title)));
+  assert.ok(titles.some((title) => /disk/i.test(title)));
+  assert.ok(titles.some((title) => /running for a while/i.test(title)));
+  assert.ok(titles.some((title) => /battery/i.test(title)));
+
+  const report = diagnostics.formatReport({ info: struggling, issues: diagnostics.assess(struggling) });
+
+  assert.match(report, /Here is what I can see/);
+  assert.match(report, /Memory is nearly full/);
+  assert.match(report, /cannot change settings/i);
+
+  const context = diagnostics.modelContext(struggling);
+
+  assert.match(context, /Device snapshot/);
+  assert.match(context, /Battery: 10%/);
+
+  const chat = await (await postJson("/api/chat", { message: "why is my computer slow" })).json();
+
+  assert.match(chat.reply, /Here is what I can see on this computer/);
+  assert.match(chat.reply, /CPU cores/);
+  assert.match(chat.reply, /cannot change settings/i);
+});
+
+test("reports running processes and resource usage", async () => {
+  const processes = await import("../services/system/processes.service.js");
+
+  const windows = processes.parseWindows(
+    JSON.stringify([
+      { Name: "chrome", WorkingSet64: 2 * 1024 ** 3 },
+      { Name: "chrome", WorkingSet64: 1024 ** 3 },
+      { Name: "Code", WorkingSet64: 512 * 1024 ** 2 },
+    ])
+  );
+
+  assert.equal(windows[0].name, "chrome");
+  assert.equal(windows[0].count, 2);
+  assert.equal(windows[0].memoryBytes, 3 * 1024 ** 3);
+
+  const unix = processes.parsePs(
+    " 12 1.5 204800 /usr/bin/code helper\n 13 0.5 102400 /usr/bin/code helper\n"
+  );
+
+  assert.equal(unix[0].name, "/usr/bin/code helper");
+  assert.equal(unix[0].count, 2);
+  assert.equal(unix[0].memoryBytes, 300 * 1024 * 1024);
+  assert.equal(unix[0].cpuPercent, 2);
+
+  const report = processes.formatReport({
+    info: {
+      cpuCount: 8,
+      totalMemoryBytes: 16 * 1024 ** 3,
+      freeMemoryBytes: 8 * 1024 ** 3,
+    },
+    usage: 25,
+    list: {
+      total: 214,
+      items: [{ name: "chrome", count: 2, memoryBytes: 3 * 1024 ** 3, cpuPercent: null }],
+    },
+  });
+
+  assert.match(report, /CPU usage: 25% across 8 cores/);
+  assert.match(report, /50% in use/);
+  assert.match(report, /chrome \(2 processes\): 3\.0 GB/);
+  assert.match(report, /do not stop/i);
+
+  assert.match(
+    processes.formatForModel({ total: 214, items: [{ name: "chrome", memoryBytes: 1024 ** 3 }] }),
+    /top 1 of 214/
+  );
+
+  const chat = await (await postJson("/api/chat", { message: "what processes are running" })).json();
+
+  assert.match(chat.reply, /CPU usage:/);
+  assert.match(chat.reply, /Processes: \d+ running/);
+  assert.match(chat.reply, /Top \d+ by memory/);
+
+  const memory = await (await postJson("/api/chat", { message: "what is using my memory" })).json();
+
+  assert.match(memory.reply, /Memory:/);
+  assert.match(memory.reply, /do not stop/i);
 });
 
 test("answers chat messages and rejects empty ones", async () => {
@@ -771,6 +880,13 @@ test("sends free-form questions to the configured model with history", async () 
     assert.equal(requests[0].body.model, "glm-4-flash");
     assert.equal(requests[0].body.messages[0].role, "system");
     assert.equal(requests[0].body.messages.at(-1).content, "tell me about penguins");
+
+    requests.length = 0;
+    await answer("why is my laptop slow", { context: "Device snapshot: 1.0 GB free of 8.0 GB" });
+
+    assert.equal(requests[0].body.messages[1].role, "system");
+    assert.match(requests[0].body.messages[1].content, /Device snapshot/);
+    assert.equal(requests[0].body.messages.at(-1).content, "why is my laptop slow");
 
     global.fetch = async () => new Response("nope", { status: 500 });
 

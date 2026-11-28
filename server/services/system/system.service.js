@@ -160,11 +160,33 @@ export const openDataFolder = async () => {
   return dataDir;
 };
 
+// Free and total space on the drive that holds the data folder. Not every
+// filesystem reports this, so a failure just leaves the field out.
+const readDisk = async (dir) => {
+  try {
+    const stats = await fs.promises.statfs(dir);
+
+    return {
+      path: path.parse(dir).root || dir,
+      freeBytes: stats.bavail * stats.bsize,
+      totalBytes: stats.blocks * stats.bsize,
+    };
+  } catch {
+    return null;
+  }
+};
+
 export const getSystemInfo = async () => ({
   platform: os.platform(),
+  release: os.release(),
+  arch: os.arch(),
   cpuCount: os.cpus().length,
+  totalMemoryBytes: os.totalmem(),
+  freeMemoryBytes: os.freemem(),
   totalMemory: `${bytesToGB(os.totalmem())} GB`,
   freeMemory: `${bytesToGB(os.freemem())} GB`,
+  uptimeSeconds: Math.round(os.uptime()),
   uptime: `${Math.floor(os.uptime() / 60)} minutes`,
   battery: await getBattery(),
+  disk: await readDisk(dataDir),
 });

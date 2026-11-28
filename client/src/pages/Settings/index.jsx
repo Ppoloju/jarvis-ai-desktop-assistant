@@ -27,6 +27,7 @@ const privacy = [
   "The API listens on 127.0.0.1 only, rejects requests addressed to other hostnames, and sends no-store caching for its data.",
   "Files are plain files on this machine and reminders plus chat memory live in a local SQLite database; treat that folder like any other local data.",
   "Free-form chat uses a local Ollama model when one is running. If you set an AI key instead, unmatched questions go to that provider; commands never leave this computer.",
+  "A device-help question includes a short summary of your OS, memory, disk, uptime and battery with the message, plus the top apps by memory for resource questions; a local model keeps that on this machine.",
   "Voice input is handled by your browser and may be sent to its speech service. Typing never leaves the machine.",
   "Web pages and searches open in your own browser.",
 ];

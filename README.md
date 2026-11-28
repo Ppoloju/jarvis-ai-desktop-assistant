@@ -41,6 +41,7 @@ that stays close to your machine and quietly handles the small things.
 |------|----------------|
 | **Overview** | A command center: voice or typed input, system status (platform, cores, memory, uptime, battery), Desktop/Documents/Downloads counts, open reminders, recent stored files and shortcuts. |
 | **Assistant (chat)** | Plain-English or spoken commands for time and date, system status, reminders, stored files, your real folders, launching apps or websites, web search, and finding and opening real files by name. |
+| **Device help** | "Why is my computer slow?" reports what Orbit can actually measure — OS, CPU cores, free memory, free disk space, uptime and battery — flags low memory, low disk, a long uptime or a low battery, and suggests safe steps. "What processes are running" shows the apps using the most memory (grouped by name) and current CPU load. A model, when configured, gets the same snapshot for follow-up troubleshooting. Read-only: Orbit never changes settings, stops processes or deletes files to "fix" anything. |
 | **Automation** | Opens http/https websites, launches Chrome, VS Code or Calculator, launches any app installed on this computer, and captures a screenshot. A small gallery shows recent captures. |
 | **Files** | A sandboxed scratch space inside `server/storage`: create folders and text files, rename them, delete them and preview contents. **This is not your real Desktop, Documents or Downloads.** |
 | **My computer** | A read-only browser for your real Desktop, Documents and Downloads. It shows names, types, sizes and dates and opens subfolders, but cannot create, rename, move or delete anything there. |
@@ -60,6 +61,8 @@ typing.
 - "open spotify" or "launch visual studio code" (an app installed on this computer)
 - "find report.pdf", then "open the file" or "open the second one"
 - "search the web for espresso"
+- "why is my computer slow" or "troubleshoot my laptop"
+- "what processes are running" or "what's using my memory"
 - "remind me to call Sam", then "mark reminder 1 done"
 - "remind me to stretch in 20 minutes" (a desktop notification appears when it comes due)
 - "remind me to take pills every day at 9am" or "water the plants every week at 6pm"
@@ -320,6 +323,7 @@ not a text file, `503` desktop unavailable.
 - `what time is it`, `system info`, `what can you do`
 - `remind me to call Sam`, `remind me to stretch in 20 minutes`, `list my reminders`
 - `remind me to take pills every day at 9am`, `snooze reminder 1 for 10 minutes`
+- `why is my computer slow`, `troubleshoot my laptop`, `what processes are running`
 - `list files`, `read notes.txt`
 - `what's in my downloads`, `list documents/Projects`
 - `open google.com`, `open calculator`, `open spotify`
@@ -332,6 +336,10 @@ services the UI uses, so anything it reports can be checked on the corresponding
 
 These are known and intentional, not unfinished work:
 
+- **Device help is advice, not repair.** It reads OS, memory, disk, uptime, battery and top-process
+  facts and suggests steps; it cannot change settings, install drivers, stop processes, delete files
+  or fix the operating system itself. A device snapshot is only attached when a message looks
+  device-related, and a remote AI key is the only path that sends it off this computer.
 - **Free-form chat is optional.** Commands are deterministic pattern matching. Unmatched messages go
   to Ollama on `127.0.0.1:11434` when a model is installed, and otherwise to a remote
   OpenAI-compatible provider if `AI_API_KEY` is set; only that remote path leaves this computer.

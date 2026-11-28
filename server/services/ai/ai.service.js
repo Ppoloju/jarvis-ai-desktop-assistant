@@ -39,6 +39,7 @@ const SYSTEM_PROMPT = [
   'issues an Orbit command such as "open youtube", "find report.pdf" or "remind me to call Sam";',
   "when a request needs an action, say which command performs it.",
   "Never claim to have performed an action you did not perform.",
+  "If a device snapshot is provided, base troubleshooting on those facts, say what you cannot change yourself, and keep steps short and safe.",
 ].join(" ");
 
 // Ollama reports names with tags ("llama3.2:latest"). Honour an explicit
@@ -200,7 +201,7 @@ export const setLocalModel = async (name) => {
   return status({ refresh: true });
 };
 
-export const answer = async (message) => {
+export const answer = async (message, { context = "" } = {}) => {
   const provider = await resolveProvider();
 
   if (!provider) {
@@ -229,7 +230,12 @@ export const answer = async (message) => {
       },
       body: JSON.stringify({
         model: provider.model,
-        messages: [{ role: "system", content: SYSTEM_PROMPT }, ...history, { role: "user", content: message }],
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          ...(context ? [{ role: "system", content: context }] : []),
+          ...history,
+          { role: "user", content: message },
+        ],
         temperature: 0.7,
         max_tokens: MAX_REPLY_TOKENS,
       }),

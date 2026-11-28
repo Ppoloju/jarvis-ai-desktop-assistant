@@ -4,12 +4,16 @@ import * as files from "../files/files.service.js";
 import * as laptop from "../laptop/laptop.service.js";
 import * as automation from "../automation/automation.service.js";
 import { getSystemInfo } from "../system/system.service.js";
+import * as diagnostics from "../system/diagnostics.service.js";
+import * as processes from "../system/processes.service.js";
 import * as memory from "../ai/memory.service.js";
 import * as ai from "../ai/ai.service.js";
 
 const CAPABILITIES = [
   ["Time and date", "what time is it"],
   ["System status", "system info"],
+  ["Device help", "why is my computer slow"],
+  ["Processes", "what processes are running"],
   ["Find a file", "find report.pdf"],
   ["Open a found file", "open the first one"],
   ["Your folders", "what's in my downloads"],
@@ -31,6 +35,19 @@ const HELP_LINES = CAPABILITIES.map(([label, example]) => `- ${label}: "${exampl
 const helpReply = () => ({
   reply: `I can help with:\n${HELP_LINES}\n\nAsk in plain English, or tap a suggestion below.`,
 });
+
+const DIAGNOSE =
+  /\b(?:diagnos\w*|troubleshoot\w*|(?:device|system|computer) health|what(?:'s| is) wrong with my (?:computer|laptop|pc)|why is my (?:computer|laptop|pc)|my (?:computer|laptop|pc) (?:is|keeps) (?:slow|lagging|freezing|full|stuck|crashing))\b/i;
+
+// Only attach a device snapshot to questions where it can help, so ordinary
+// chat does not carry machine details to a remote model for no reason.
+const DEVICE_TERMS =
+  /\b(?:computer|laptop|pc|device|system|windows|macos|linux|memory|ram|cpu|disk|battery|slow|lag|lagging|freez\w*|crash\w*|drivers?|update|error|fix|repair|troubleshoot|diagnos\w*)\b/i;
+
+const PROCESS_QUESTION =
+  /\b(?:process(?:es)?|what'?s running|what is running|running apps|resource usage|memory usage|cpu usage|using (?:my )?(?:cpu|memory|ram)|eating (?:my )?(?:cpu|memory|ram)|top processes)\b/i;
+
+const RESOURCE_TERMS = /\b(?:process(?:es)?|cpu|memory|ram|slow|lag|resource|running)\b/i;
 
 const SUGGESTED_FALLBACK = [
   "what time is it",
@@ -445,6 +462,28 @@ const snoozeReply = (target, duration) => {
   };
 };
 
+const diagnoseReply = async () => {
+  try {
+    return { reply: diagnostics.formatReport(await diagnostics.getDiagnosis()) };
+  } catch (error) {
+    return { reply: `I could not read this computer's status: ${error.message}` };
+  }
+};
+
+const processesReply = async () => {
+  try {
+    const [info, usage, list] = await Promise.all([
+      getSystemInfo(),
+      processes.readCpuUsage(),
+      processes.listProcesses(),
+    ]);
+
+    return { reply: processes.formatReport({ info, usage, list }) };
+  } catch (error) {
+    return { reply: `I could not read the process list: ${error.message}` };
+  }
+};
+
 const COMMAND_EXAMPLES = SUGGESTED_FALLBACK.map((item) => `"${item}"`).join(", ");
 
 // Anything the command list does not cover becomes a normal conversation; without
@@ -457,8 +496,30 @@ const fallbackReply = async (text) => {
     };
   }
 
+  let context = "";
+
+  if (DEVICE_TERMS.test(text)) {
+    try {
+      const { info } = await diagnostics.getDiagnosis();
+
+      let snapshot = diagnostics.modelContext(info);
+
+      if (RESOURCE_TERMS.test(text)) {
+        try {
+          snapshot += `\n\n${processes.formatForModel(await processes.listProcesses())}`;
+        } catch {
+          // Keep the rest of the snapshot if the process list is unavailable.
+        }
+      }
+
+      context = snapshot;
+    } catch {
+      // A failed probe should not block the answer.
+    }
+  }
+
   try {
-    return { reply: await ai.answer(text), source: "ai" };
+    return { reply: await ai.answer(text, { context }), source: "ai" };
   } catch (error) {
     return {
       reply: `I could not reach the AI service: ${error.message}. Your commands still work.`,
@@ -548,6 +609,14 @@ const route = async (message) => {
         day: "numeric",
       })}.`,
     };
+  }
+
+  if (DIAGNOSE.test(lower)) {
+    return diagnoseReply();
+  }
+
+  if (PROCESS_QUESTION.test(lower)) {
+    return processesReply();
   }
 
   if (/\b(system|memory|ram|cpu|uptime|status|battery|charge)\b/.test(lower)) {
