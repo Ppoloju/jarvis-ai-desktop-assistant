@@ -1,11 +1,13 @@
 import "dotenv/config";
 import app from "./app.js";
+import { startReminderScheduler } from "./services/reminders/scheduler.js";
 
 const PORT = Number(process.env.PORT) || 5000;
 const HOST = process.env.HOST || "127.0.0.1";
 
 const server = app.listen(PORT, HOST, () => {
   console.log(`Orbit API running on http://${HOST}:${PORT}`);
+  startReminderScheduler();
 });
 
 server.on("error", (error) => {

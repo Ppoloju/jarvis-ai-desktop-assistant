@@ -3,6 +3,7 @@ import path from "path";
 import { randomUUID } from "crypto";
 
 import { assert } from "../../utils/http.js";
+import { parseDueDate } from "./due.js";
 
 const dataDir = process.env.ORBIT_DATA_DIR || path.join(import.meta.dirname, "../..");
 const storageDir = path.join(dataDir, "storage");
@@ -17,7 +18,14 @@ const load = () => {
   }
 };
 
-let reminders = load().map((reminder) => ({ ...reminder, completed: Boolean(reminder.completed) }));
+const normalize = (reminder) => ({
+  ...reminder,
+  completed: Boolean(reminder.completed),
+  dueAt: reminder.dueAt ?? null,
+  notifiedAt: reminder.notifiedAt ?? null,
+});
+
+let reminders = load().map(normalize);
 
 const save = () => {
   fs.mkdirSync(storageDir, { recursive: true });
@@ -35,12 +43,16 @@ export const addReminder = (text) => {
     "Reminder text is required"
   );
 
+  const { dueAt, text: cleaned } = parseDueDate(text);
+
   const reminder = {
     id: randomUUID(),
-    text: text.trim(),
+    text: cleaned || text.trim(),
     createdAt: new Date().toISOString(),
     completed: false,
     completedAt: null,
+    dueAt: dueAt ? dueAt.toISOString() : null,
+    notifiedAt: null,
   };
 
   reminders.push(reminder);
@@ -63,6 +75,32 @@ export const setCompleted = (id, completed) => {
   save();
 
   return { ...reminder };
+};
+
+// Marks every reminder that is due and not yet announced, so the scheduler
+// never shows the same reminder twice. Returns the ones it announced.
+export const markDueNotified = (now = new Date()) => {
+  const fired = reminders.filter(
+    (reminder) =>
+      reminder.dueAt &&
+      !reminder.completed &&
+      !reminder.notifiedAt &&
+      new Date(reminder.dueAt) <= now
+  );
+
+  if (fired.length === 0) {
+    return [];
+  }
+
+  const stamp = now.toISOString();
+
+  fired.forEach((reminder) => {
+    reminder.notifiedAt = stamp;
+  });
+
+  save();
+
+  return fired.map((reminder) => ({ ...reminder }));
 };
 
 export const deleteReminder = (id) => {

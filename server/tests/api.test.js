@@ -7,6 +7,7 @@ import path from "node:path";
 process.env.ORBIT_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "orbit-test-"));
 process.env.ORBIT_HOME = fs.mkdtempSync(path.join(os.tmpdir(), "orbit-home-"));
 process.env.ORBIT_APPS_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "orbit-apps-"));
+process.env.ORBIT_NO_NOTIFY = "1";
 
 const homeDir = process.env.ORBIT_HOME;
 const appsDir = process.env.ORBIT_APPS_DIR;
@@ -439,4 +440,74 @@ test("assistant finds files and offers to open them", async () => {
   ).json();
 
   assert.match(missing.reply, /could not find/i);
+});
+
+test("parses reminder times from text", async () => {
+  const { parseDueDate } = await import("../services/reminders/due.js");
+  const now = new Date("2026-03-04T10:00:00");
+
+  const minutes = parseDueDate("call Sam in 20 minutes", now);
+
+  assert.equal(minutes.text, "call Sam");
+  assert.equal(new Date(minutes.dueAt).getTime() - now.getTime(), 20 * 60_000);
+
+  const morning = parseDueDate("send the report tomorrow at 9am", now);
+
+  assert.equal(morning.text, "send the report");
+  assert.equal(new Date(morning.dueAt).getDate(), 5);
+  assert.equal(new Date(morning.dueAt).getHours(), 9);
+
+  const evening = parseDueDate("call the bank at 5pm", now);
+
+  assert.equal(new Date(evening.dueAt).getDate(), 4);
+  assert.equal(new Date(evening.dueAt).getHours(), 17);
+
+  // 9am has already passed, so this means tomorrow
+  const late = parseDueDate("take the bins out at 9am", now);
+
+  assert.equal(new Date(late.dueAt).getDate(), 5);
+  assert.equal(parseDueDate("buy milk", now).dueAt, null);
+});
+
+test("fires due reminders exactly once", async () => {
+  const reminders = await import("../services/reminders/reminders.service.js");
+  const { fireDueReminders } = await import("../services/reminders/scheduler.js");
+
+  const created = reminders.addReminder("water the plants in 1 minute");
+
+  assert.equal(created.text, "water the plants");
+  assert.ok(created.dueAt);
+
+  const later = new Date(Date.now() + 2 * 60_000);
+  const fired = fireDueReminders(later).filter((reminder) => reminder.id === created.id);
+
+  assert.equal(fired.length, 1);
+  assert.ok(fired[0].notifiedAt);
+
+  const repeated = fireDueReminders(later).filter((reminder) => reminder.id === created.id);
+
+  assert.equal(repeated.length, 0);
+
+  reminders.deleteReminder(created.id);
+});
+
+test("assistant sets timed reminders from speech", async () => {
+  const added = await (
+    await postJson("/api/chat", { message: "remind me to stretch in 20 minutes" })
+  ).json();
+
+  assert.match(added.reply, /Added reminder: stretch/);
+  assert.match(added.reply, /desktop notification/i);
+
+  const { reminders } = await (await call("/api/reminders")).json();
+
+  // An earlier test saved a plain "stretch" reminder, so read the newest one
+  const stretch = reminders.findLast((reminder) => reminder.text === "stretch");
+
+  assert.ok(stretch.dueAt, "the due time is saved with the reminder");
+
+  const listed = await (await postJson("/api/chat", { message: "list my reminders" })).json();
+
+  assert.match(listed.reply, /stretch/);
+  assert.match(listed.reply, /due/i);
 });

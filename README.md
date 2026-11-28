@@ -31,7 +31,7 @@ containers that stay idle-cheap.
 | **Automation** | Opens http/https websites, launches Chrome, VS Code or Calculator, launches any app installed on this computer, and captures a screenshot. The newest 20 captures are kept and shown in a small gallery. |
 | **Files** | A sandboxed workspace for scratch text files inside the app's own storage folder (`server/storage`). You can create folders and files, rename them, delete them, and preview text contents. **This is not your real Desktop, Documents or Downloads.** |
 | **My computer** | A read-only browser for your real Desktop, Documents and Downloads. It lists names, types, sizes and dates and lets you open subfolders, but it cannot create, rename, move or delete anything there. |
-| **Reminders** | A small persisted to-do list. Reminders can be added, marked done or reopened, and deleted. |
+| **Reminders** | A persisted to-do list with optional due times ("in 20 minutes", "at 5pm", "tomorrow at 9am"). While the API is running, a background check announces due reminders with a desktop notification. |
 | **History** | Conversation history saved in this browser, with a one-click clear action. |
 | **Settings** | App information and conversation-history controls. |
 
@@ -47,6 +47,7 @@ typing. Useful phrases:
 - "find report.pdf", then "open the file" or "open the second one"
 - "search the web for espresso"
 - "remind me to call Sam", then "mark reminder 1 done"
+- "remind me to stretch in 20 minutes" (a desktop notification appears when it comes due)
 - "what's in my downloads", "system info"
 
 The API only ever receives the recognised text. Some browsers send the microphone audio to their own
@@ -160,6 +161,7 @@ machine and on loopback.
 | `ORBIT_DATA_DIR` | `server` | Storage root; files go to `storage/` and screenshots to `screenshots/` |
 | `ORBIT_HOME` | the current user's home | Home folder used by the read-only Desktop, Documents and Downloads browser (useful for tests) |
 | `ORBIT_APPS_DIR` | the platform's shortcut folders | Shortcut folders scanned for installed apps, separated by the platform path separator (useful for tests) |
+| `ORBIT_NO_NOTIFY` | unset | Set to `1` to suppress desktop notifications (used by the tests) |
 | `VITE_API_TARGET` | `http://localhost:5000` | Proxy target for the dev server |
 | `VITE_API_BASE` | empty | API origin, only when the client is served from a different origin |
 
@@ -210,7 +212,7 @@ orbit-ai-desktop-assistant/
 | GET | `/api/laptop` | List the Desktop, Documents and Downloads folders |
 | GET | `/api/laptop/:folder?path=...` | List one folder, read-only |
 | GET | `/api/reminders` | List reminders |
-| POST | `/api/reminders` | Create a reminder |
+| POST | `/api/reminders` | Create a reminder; a time phrase in the text sets its due time |
 | PATCH | `/api/reminders/:id` | Mark a reminder done or open |
 | DELETE | `/api/reminders/:id` | Delete a reminder |
 
@@ -221,7 +223,7 @@ input, `403` disallowed origin, `404` missing resource, `409` conflict, `413` pr
 ### Assistant examples
 
 - `what time is it`, `system info`, `what can you do`
-- `remind me to call Sam`, `list my reminders`
+- `remind me to call Sam`, `remind me to stretch in 20 minutes`, `list my reminders`
 - `list files`, `read notes.txt`
 - `what's in my downloads`, `list documents/Projects`
 - `open google.com`, `open calculator`, `open spotify`
@@ -319,8 +321,8 @@ These are known and intentional, not unfinished work:
 - **Folder listings are capped at 500 entries** with no pagination, search or sorting controls beyond
   folders-first alphabetical order.
 - **File previews are text only and capped at 256 KB.** Binary files return `415`.
-- **Reminders are a list, not a scheduler.** There are no due dates, alarms, notifications or
-  background checks. "Done" only records a flag.
+- **Timed reminders need the API running.** The due-time check lives in the API process, so a
+  reminder only fires while it is up. One that came due while it was off fires at the next start.
 - **History is browser-local.** It is stored in `localStorage` (newest 50 messages), is not synced
   between browsers, and clearing it cannot be undone.
 - **One API process per data directory.** The reminder list is held in memory and written back on
@@ -356,7 +358,7 @@ cd client && npm run lint && npm run build
 Not started, and out of scope for this version:
 
 - Optional local model backend for free-form answers
-- Reminder scheduling with desktop notifications
+- Recurring reminders (daily, weekly)
 - Packaged desktop build with a tray icon
 
 ## License

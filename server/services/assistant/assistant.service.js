@@ -1,4 +1,5 @@
 import * as reminders from "../reminders/reminders.service.js";
+import { dueLabel } from "../reminders/due.js";
 import * as files from "../files/files.service.js";
 import * as laptop from "../laptop/laptop.service.js";
 import * as automation from "../automation/automation.service.js";
@@ -13,6 +14,7 @@ const CAPABILITIES = [
   ["Websites", "open youtube"],
   ["Web search", "search the web for espresso"],
   ["Reminders", "remind me to call Sam"],
+  ["Timed reminder", "remind me to stretch in 20 minutes"],
   ["Your reminders", "list my reminders"],
   ["Stored files", "list files"],
   ["Read a stored file", "read notes.txt"],
@@ -264,7 +266,13 @@ const remindersReply = () => {
 
   const open = list.filter((reminder) => !reminder.completed).length;
   const lines = list
-    .map((reminder, index) => `${index + 1}. ${reminder.completed ? "[done] " : ""}${reminder.text}`)
+    .map((reminder, index) => {
+      const due = reminder.dueAt
+        ? ` (due ${dueLabel(reminder.dueAt)}${reminder.notifiedAt ? ", sent" : ""})`
+        : "";
+
+      return `${index + 1}. ${reminder.completed ? "[done] " : ""}${reminder.text}${due}`;
+    })
     .join("\n");
 
   return { reply: `You have ${count(list.length, "reminder")} (${open} open):\n${lines}` };
@@ -417,8 +425,11 @@ export const reply = async (message) => {
 
   if (addReminder) {
     const reminder = reminders.addReminder(addReminder[1]);
+    const when = reminder.dueAt
+      ? ` I will remind you ${dueLabel(reminder.dueAt)} with a desktop notification.`
+      : "";
 
-    return { reply: `Added reminder: ${reminder.text}` };
+    return { reply: `Added reminder: ${reminder.text}.${when}` };
   }
 
   const completeMatch =
