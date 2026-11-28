@@ -4,8 +4,9 @@
 
 A local-first desktop assistant. A React dashboard talks to a small Node/Express API that answers
 questions, launches apps and websites, captures screenshots, manages scratch files and keeps
-reminders. No account or cloud sync is needed: everything runs and is stored on your machine. An
-optional AI key is the only thing that can send a message off this computer.
+reminders. No account or cloud sync is needed: everything runs and is stored on your machine. A
+local model through Ollama keeps free-form chat on this computer too, and an optional AI key is the
+only thing that can send a message off it.
 
 Orbit is the new name for this project (it was previously called "Jarvis AI Desktop Assistant").
 "Orbit" is meant to suggest something that stays close to your machine and quietly handles the
@@ -19,8 +20,7 @@ Most assistants are cloud services: they need an account, an API key and an inte
 they see everything you type. Orbit explores the opposite approach. The intent engine is
 deterministic and runs locally, automation uses the host desktop directly, and all data stays on
 disk. Building it meant solving practical problems around filesystem confinement, cross-platform
-folder discovery, a CORS allowlist, predictable error responses and packaging a two-service app in
-containers that stay idle-cheap.
+folder discovery, a CORS allowlist, predictable error responses and keeping a two-process app idle-cheap.
 
 ## What Each Feature Does
 
@@ -31,10 +31,10 @@ containers that stay idle-cheap.
 | **Automation** | Opens http/https websites, launches Chrome, VS Code or Calculator, launches any app installed on this computer, and captures a screenshot. The newest 20 captures are kept and shown in a small gallery. |
 | **Files** | A sandboxed workspace for scratch text files inside the app's own storage folder (`server/storage`). You can create folders and files, rename them, delete them, and preview text contents. **This is not your real Desktop, Documents or Downloads.** |
 | **My computer** | A read-only browser for your real Desktop, Documents and Downloads. It lists names, types, sizes and dates and lets you open subfolders, but it cannot create, rename, move or delete anything there. |
-| **Free-form chat** | Anything the command list does not cover goes to an optional OpenAI-compatible model (Z.ai by default), with the last few turns kept as local context. Each reply it produces is tagged **AI**. |
+| **Free-form chat** | Anything the command list does not cover goes to a model: Ollama on this computer when it is running (no key, nothing leaves the machine), otherwise a remote OpenAI-compatible provider when `AI_API_KEY` is set. The last few turns are kept as local context, and each reply is tagged **AI**. |
 | **Reminders** | A persisted to-do list with optional due times ("in 20 minutes", "at 5pm", "tomorrow at 9am"). While the API is running, a background check announces due reminders with a desktop notification. |
 | **History** | Conversation history saved in this browser, with a one-click clear action. |
-| **Settings** | App information and conversation-history controls. |
+| **Settings** | App information, AI model status with a local-model picker, one-click database backups, an "Open data folder" button and conversation-history controls. |
 
 ### Voice commands
 
@@ -165,9 +165,12 @@ machine and on loopback.
 | `ORBIT_HOME` | the current user's home | Home folder used by the read-only Desktop, Documents and Downloads browser (useful for tests) |
 | `ORBIT_APPS_DIR` | the platform's shortcut folders | Shortcut folders scanned for installed apps, separated by the platform path separator (useful for tests) |
 | `ORBIT_NO_NOTIFY` | unset | Set to `1` to suppress desktop notifications (used by the tests) |
-| `AI_API_KEY` | unset | Key for an OpenAI-compatible chat provider; without it the assistant only runs commands (aliases: `ZAI_API_KEY`, `OPENAI_API_KEY`) |
+| `AI_API_KEY` | unset | Key for an OpenAI-compatible chat provider; when set it is used instead of the local model (aliases: `ZAI_API_KEY`, `OPENAI_API_KEY`) |
 | `AI_BASE_URL` | `https://api.z.ai/api/paas/v4` | Provider base URL, e.g. `https://api.openai.com/v1` |
-| `AI_MODEL` | `glm-4-flash` | Model used for free-form answers |
+| `AI_MODEL` | `glm-4-flash` | Remote model used for free-form answers |
+| `OLLAMA_BASE_URL` | `http://127.0.0.1:11434` | Where Orbit looks for a local Ollama server |
+| `OLLAMA_MODEL` | first installed model | Default local model, e.g. `llama3.2`; a model picked in Settings overrides it |
+| `ORBIT_DISABLE_OLLAMA` | unset | Set to `1` to skip local-model detection (used by the tests) |
 | `VITE_API_TARGET` | `http://localhost:5000` | Proxy target for the dev server |
 | `VITE_API_BASE` | empty | API origin, only when the client is served from a different origin |
 
@@ -178,10 +181,16 @@ Orbit keeps everything under `server/storage` (or `$ORBIT_DATA_DIR/storage`):
 - `orbit.db` — a SQLite database created on first start. Table `reminders` holds the text, due time
   and done state; table `chat_turns` holds the last 24 messages that give the model its context.
 - Your Files entries, and `screenshots/` next to `storage/` for captures.
+- `backups/` next to `storage/` for snapshots taken from Settings.
 
-To back up reminders and memory, stop the API and copy `orbit.db` (and its `-wal` file if present).
-Older versions kept those as `reminders.json` and `chat-memory.json`; the first start imports them
-into the database and keeps the old files beside it as `*.json.migrated`.
+To back up reminders and memory, open **Settings → Back up now**. It writes a consistent snapshot to
+`backups/` without stopping the API, and the result is an ordinary SQLite file you can copy
+anywhere. Stopping the API first is only needed if you want to copy `orbit.db` by hand. Older
+versions kept data as `reminders.json` and `chat-memory.json`; the first start imports them into the
+database and keeps the old files beside it as `*.json.migrated`.
+
+To restore a backup, stop the API, delete `storage/orbit.db-wal` and `storage/orbit.db-shm`, then
+copy the chosen file from `backups/` over `storage/orbit.db`.
 
 ## Project Structure
 
@@ -273,9 +282,9 @@ services the UI uses, so anything it reports can be checked on the corresponding
   laptop browsing requires both a folder word and a browse word.
 - **Persistent state without a cloud:** reminders and chat memory live in a SQLite database opened
   with `node:sqlite` and written synchronously, so nothing needs a server or a background service.
-  The trade-off is a newer Node requirement (22.13+) and a single-file database that should be
-  copied while the API is stopped.
-- **Cheap idle containers:** a Vite dev server and nodemon keep CPU busy. Serving a static build and
+  The trade-off is a newer Node requirement (22.13+) and a single-file database; Settings takes a
+  consistent snapshot while the API is running.
+- **Cheap idle processes:** a Vite dev server and nodemon keep CPU busy. Serving a static build and
   running plain Node instead brings idle usage close to zero.
 - **Small UI consistency problems:** counts are pluralised in one place, async pages avoid setting
   state during render, and destructive actions ask for confirmation before deleting anything.
@@ -284,10 +293,10 @@ services the UI uses, so anything it reports can be checked on the corresponding
 
 These are known and intentional, not unfinished work:
 
-- **Free-form chat is optional and remote.** Commands are deterministic pattern matching. If an AI
-  key is set, only unmatched messages go to that provider; the model does not run locally, and those
-  messages leave this computer. Conversation memory is a capped table (`chat_turns`, 24 turns) in the
-  local SQLite database.
+- **Free-form chat is optional.** Commands are deterministic pattern matching. Unmatched messages go
+  to Ollama on `127.0.0.1:11434` when a model is installed, and otherwise to a remote
+  OpenAI-compatible provider if `AI_API_KEY` is set; only that remote path leaves this computer.
+  Conversation memory is a capped table (`chat_turns`, 24 turns) in the local SQLite database.
 - **Single user, no authentication.** The API trusts whoever can reach it on loopback, which is why it also rejects requests addressed to a non-loopback hostname (DNS rebinding) and sends `no-store` along with conservative security headers. Keep it on loopback; do
   not expose port 5000 to a network. CORS limits browsers, not direct HTTP clients.
 - **App launching depends on shortcuts.** Chrome, VS Code and Calculator use fixed commands; anything

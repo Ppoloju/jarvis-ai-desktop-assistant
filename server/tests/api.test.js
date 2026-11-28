@@ -9,6 +9,8 @@ process.env.ORBIT_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "orbit-test-"
 process.env.ORBIT_HOME = fs.mkdtempSync(path.join(os.tmpdir(), "orbit-home-"));
 process.env.ORBIT_APPS_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "orbit-apps-"));
 process.env.ORBIT_NO_NOTIFY = "1";
+// The suite must not depend on whatever model happens to run on this machine.
+process.env.ORBIT_DISABLE_OLLAMA = "1";
 
 const homeDir = process.env.ORBIT_HOME;
 const appsDir = process.env.ORBIT_APPS_DIR;
@@ -644,5 +646,149 @@ test("sends free-form questions to the configured model with history", async () 
   } finally {
     global.fetch = originalFetch;
     delete process.env.AI_API_KEY;
+  }
+});
+
+test("uses a local Ollama model when no AI key is configured", async () => {
+  const ai = await import("../services/ai/ai.service.js");
+  const originalFetch = global.fetch;
+  const calls = [];
+
+  process.env.ORBIT_DISABLE_OLLAMA = "0";
+  ai.clearLocalCache();
+
+  try {
+    global.fetch = async (url, options = {}) => {
+      calls.push({
+        url: String(url),
+        headers: options.headers || {},
+        body: options.body ? JSON.parse(options.body) : null,
+      });
+
+      if (String(url).endsWith("/api/tags")) {
+        return new Response(JSON.stringify({ models: [{ name: "llama3.2:latest" }] }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ choices: [{ message: { content: "Local hello." } }] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    };
+
+    const status = await ai.status({ refresh: true });
+
+    assert.equal(status.configured, true);
+    assert.equal(status.provider, "local");
+    assert.equal(status.model, "llama3.2:latest");
+    assert.equal(await ai.isConfigured(), true);
+    assert.equal(await ai.answer("say hello"), "Local hello.");
+
+    const chat = calls.find((entry) => entry.url.endsWith("/v1/chat/completions"));
+
+    assert.ok(chat, "chat goes to Ollama's OpenAI-compatible endpoint");
+    assert.equal(chat.url, "http://127.0.0.1:11434/v1/chat/completions");
+    assert.equal(chat.headers.Authorization, undefined);
+    assert.equal(chat.body.model, "llama3.2:latest");
+  } finally {
+    global.fetch = originalFetch;
+    process.env.ORBIT_DISABLE_OLLAMA = "1";
+    ai.clearLocalCache();
+  }
+});
+
+test("backs up the database without stopping the API", async () => {
+  const { db } = await import("../services/db/db.service.js");
+
+  const created = await call("/api/system/backup", { method: "POST" });
+  const body = await created.json();
+
+  assert.equal(created.status, 200);
+  assert.match(body.backup.file, /^orbit-backup-.*\.db$/);
+  assert.ok(body.backup.size > 0);
+
+  const file = path.join(process.env.ORBIT_DATA_DIR, "backups", body.backup.file);
+
+  assert.ok(fs.existsSync(file), "the snapshot exists on disk");
+
+  const listed = await (await call("/api/system/backup")).json();
+
+  assert.ok(listed.backups.some((entry) => entry.file === body.backup.file));
+
+  const { DatabaseSync } = await import("node:sqlite");
+  const copy = new DatabaseSync(file);
+
+  try {
+    const snapshot = copy.prepare("SELECT COUNT(*) AS total FROM reminders").get().total;
+    const live = db.prepare("SELECT COUNT(*) AS total FROM reminders").get().total;
+
+    assert.equal(snapshot, live, "the snapshot is a readable, current database");
+  } finally {
+    copy.close();
+  }
+});
+
+test("reports the AI setup over the API", async () => {
+  const response = await call("/api/system/ai");
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(typeof body.configured, "boolean");
+  assert.ok("provider" in body);
+
+  const health = await (await call("/api/health")).json();
+
+  assert.equal(health.ai.configured, body.configured);
+});
+
+test("remembers the local model chosen in Settings", async () => {
+  const ai = await import("../services/ai/ai.service.js");
+  const originalFetch = global.fetch;
+
+  process.env.ORBIT_DISABLE_OLLAMA = "0";
+  ai.clearLocalCache();
+
+  try {
+    global.fetch = async (url) => {
+      if (String(url).endsWith("/api/tags")) {
+        return new Response(
+          JSON.stringify({ models: [{ name: "llama3.2:latest" }, { name: "qwen2.5-coder:7b" }] }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      return new Response(JSON.stringify({}), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    };
+
+    // global.fetch is mocked above, so the HTTP calls use the real one.
+    const request = (route, options) => originalFetch(base + route, options);
+    const put = (model) =>
+      request("/api/system/ai/model", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model }),
+      });
+
+    const saved = await put("qwen2.5-coder:7b");
+
+    assert.equal(saved.status, 200);
+
+    const chosen = await saved.json();
+
+    assert.equal(chosen.model, "qwen2.5-coder:7b");
+    assert.equal(chosen.preferred, "qwen2.5-coder:7b");
+    assert.equal((await (await request("/api/system/ai")).json()).model, "qwen2.5-coder:7b");
+
+    assert.equal((await put("not-installed")).status, 400);
+    assert.equal((await put("")).status, 200);
+  } finally {
+    global.fetch = originalFetch;
+    process.env.ORBIT_DISABLE_OLLAMA = "1";
+    ai.clearLocalCache();
   }
 });

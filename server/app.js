@@ -75,7 +75,7 @@ app.delete("/api/chat/memory", (req, res) => {
   res.json({ success: true, cleared: true });
 });
 
-app.get("/api/health", (req, res) => {
+app.get("/api/health", async (req, res) => {
   let storageWritable = true;
 
   try {
@@ -90,7 +90,7 @@ app.get("/api/health", (req, res) => {
     version: process.env.npm_package_version || "1.0.0",
     uptimeSeconds: Math.round(process.uptime()),
     storageWritable,
-    ai: assistant.aiStatus(),
+    ai: await assistant.aiStatus(),
   });
 });
 
@@ -99,7 +99,6 @@ app.get("/api", (req, res) => {
     success: true,
     service: "orbit-api",
     endpoints: {
-      system: "GET /api/system/info",
       health: "GET /api/health",
       chat: ["POST /api/chat", "DELETE /api/chat/memory"],
       automation: [
@@ -108,6 +107,13 @@ app.get("/api", (req, res) => {
         "GET /api/automation/apps",
         "POST /api/automation/screenshot",
         "GET /api/automation/screenshots",
+      ],
+      system: [
+        "GET /api/system/info",
+        "GET /api/system/ai",
+        "GET /api/system/backup",
+        "POST /api/system/backup",
+        "POST /api/system/open-data-folder",
       ],
       files: [
         "GET /api/files",

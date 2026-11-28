@@ -401,9 +401,9 @@ const COMMAND_EXAMPLES = SUGGESTED_FALLBACK.map((item) => `"${item}"`).join(", "
 // Anything the command list does not cover becomes a normal conversation; without
 // an API key the assistant explains what it can still do instead of guessing.
 const fallbackReply = async (text) => {
-  if (!ai.isConfigured()) {
+  if (!(await ai.isConfigured())) {
     return {
-      reply: `I do not have a matching command for "${text}" yet.\n\nTry one of these: ${COMMAND_EXAMPLES}.\n\nTo chat about anything, add an AI key (see the README) and try again.`,
+      reply: `I do not have a matching command for "${text}" yet.\n\nTry one of these: ${COMMAND_EXAMPLES}.\n\nTo chat about anything, run a local model with Ollama (ollama.com) or add an AI key (see the README), then try again.`,
       source: "commands",
     };
   }
@@ -561,4 +561,4 @@ export const reply = async (message) => {
 
 export const clearMemory = () => memory.clearTurns();
 
-export const aiStatus = () => ai.describe();
+export const aiStatus = () => ai.status();

@@ -46,6 +46,20 @@ export const listScreenshots = async () => request("/api/automation/screenshots"
 // System API
 export const getSystemInfo = async () => request("/api/system/info");
 
+export const getAiStatus = async (refresh = false) =>
+  request(`/api/system/ai${refresh ? "?refresh=1" : ""}`);
+
+export const setAiModel = async (model) =>
+  request("/api/system/ai/model", jsonOptions("PUT", { model }));
+
+export const listBackups = async () => request("/api/system/backup");
+
+export const createBackup = async () =>
+  request("/api/system/backup", { method: "POST" });
+
+export const openDataFolder = async () =>
+  request("/api/system/open-data-folder", { method: "POST" });
+
 // Files API
 export const listFiles = async () => request("/api/files");
 

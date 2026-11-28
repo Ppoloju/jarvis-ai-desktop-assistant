@@ -2,6 +2,11 @@ import { execFile } from "child_process";
 import fs from "fs";
 import os from "os";
 import path from "path";
+import open from "open";
+
+import { httpError } from "../../utils/http.js";
+
+const dataDir = process.env.ORBIT_DATA_DIR || path.join(import.meta.dirname, "../..");
 
 const BATTERY_CACHE_MS = 30_000;
 const PROBE_TIMEOUT_MS = 3_000;
@@ -137,6 +142,22 @@ export const getBattery = async () => {
   batteryCache = { value, at: now };
 
   return value;
+};
+
+// Opens the folder that holds storage/, screenshots/ and backups/ so the user
+// can copy the data or the backups somewhere else.
+export const openDataFolder = async () => {
+  if (!fs.existsSync(dataDir)) {
+    throw httpError(404, "The data folder does not exist yet");
+  }
+
+  try {
+    await open(dataDir);
+  } catch {
+    throw httpError(503, "Could not open the data folder on this computer");
+  }
+
+  return dataDir;
 };
 
 export const getSystemInfo = async () => ({
