@@ -30,9 +30,11 @@ const resolveInStorage = (name) => {
 
 const ensureStorage = () => fs.mkdirSync(storageDir, { recursive: true });
 
-// Internal files that belong to the app, not to the user's storage view: the
-// reminder list and chat memory, their temporary write file and kept corrupt copies.
-const INTERNAL_FILE = /^(?:reminders|chat-memory)\.json(?:\.tmp|\.corrupt-\d+)?$/;
+// Internal entries that belong to the app, not to the user's storage view: the
+// SQLite database and its journal files, plus the old JSON stores an upgrade
+// imported (and their temporary or corrupt copies).
+const INTERNAL_FILE =
+  /^(?:orbit\.db(?:-wal|-shm)?|reminders\.json|chat-memory\.json)(?:\.tmp|\.corrupt-\d+|\.migrated)?$/;
 
 const byTypeThenName = (a, b) => {
   if (a.type !== b.type) {

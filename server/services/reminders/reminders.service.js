@@ -1,57 +1,46 @@
-import fs from "fs";
-import path from "path";
 import { randomUUID } from "crypto";
 
 import { assert } from "../../utils/http.js";
+import { db } from "../db/db.service.js";
 import { parseDueDate } from "./due.js";
-
-const dataDir = process.env.ORBIT_DATA_DIR || path.join(import.meta.dirname, "../..");
-const storageDir = path.join(dataDir, "storage");
-const remindersFile = path.join(storageDir, "reminders.json");
 
 const MAX_TEXT_LENGTH = 500;
 const MAX_REMINDERS = 500;
 
-// Keep a damaged file instead of silently overwriting it on the next save.
-const preserveCorruptFile = () => {
-  try {
-    fs.renameSync(remindersFile, `${remindersFile}.corrupt-${Date.now()}`);
-  } catch {
-    // Nothing else can be done; the app still has to start.
-  }
-};
-
-const load = () => {
-  try {
-    const parsed = JSON.parse(fs.readFileSync(remindersFile, "utf8"));
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (error) {
-    if (error.code !== "ENOENT") {
-      preserveCorruptFile();
-    }
-
-    return [];
-  }
-};
-
-const normalize = (reminder) => ({
-  ...reminder,
-  completed: Boolean(reminder.completed),
-  dueAt: reminder.dueAt ?? null,
-  notifiedAt: reminder.notifiedAt ?? null,
+const toReminder = (row) => ({
+  id: row.id,
+  text: row.text,
+  createdAt: row.created_at,
+  completed: Boolean(row.completed),
+  completedAt: row.completed_at ?? null,
+  dueAt: row.due_at ?? null,
+  notifiedAt: row.notified_at ?? null,
 });
 
-let reminders = load()
-  .filter((reminder) => reminder && typeof reminder.text === "string")
-  .map(normalize);
+const selectAll = db.prepare("SELECT * FROM reminders ORDER BY rowid");
+const selectOne = db.prepare("SELECT * FROM reminders WHERE id = ?");
+const countAll = db.prepare("SELECT COUNT(*) AS total FROM reminders");
+const insert = db.prepare(`
+  INSERT INTO reminders (id, text, created_at, completed, completed_at, due_at, notified_at)
+  VALUES (?, ?, ?, 0, NULL, ?, NULL)
+`);
+const updateCompleted = db.prepare(
+  "UPDATE reminders SET completed = ?, completed_at = ? WHERE id = ?"
+);
+const updateNotified = db.prepare("UPDATE reminders SET notified_at = ? WHERE id = ?");
+const remove = db.prepare("DELETE FROM reminders WHERE id = ?");
+const selectDue = db.prepare(`
+  SELECT * FROM reminders
+  WHERE due_at IS NOT NULL AND completed = 0 AND notified_at IS NULL AND due_at <= ?
+  ORDER BY due_at
+`);
 
-const save = () => {
-  fs.mkdirSync(storageDir, { recursive: true });
+const findOrFail = (id) => {
+  const row = selectOne.get(id);
 
-  // Write to a temporary file first so a crash cannot truncate the list
-  const temporaryFile = `${remindersFile}.tmp`;
-  fs.writeFileSync(temporaryFile, JSON.stringify(reminders, null, 2));
-  fs.renameSync(temporaryFile, remindersFile);
+  assert(row, 404, "Reminder not found");
+
+  return row;
 };
 
 export const addReminder = (text) => {
@@ -63,7 +52,7 @@ export const addReminder = (text) => {
 
   assert(text.trim().length <= MAX_TEXT_LENGTH, 400, "That reminder is too long");
 
-  assert(reminders.length < MAX_REMINDERS, 409, "Too many reminders. Delete a few first.");
+  assert(countAll.get().total < MAX_REMINDERS, 409, "Too many reminders. Delete a few first.");
 
   const { dueAt, text: cleaned } = parseDueDate(text);
 
@@ -71,67 +60,41 @@ export const addReminder = (text) => {
     id: randomUUID(),
     text: cleaned || text.trim(),
     createdAt: new Date().toISOString(),
-    completed: false,
-    completedAt: null,
     dueAt: dueAt ? dueAt.toISOString() : null,
-    notifiedAt: null,
   };
 
-  reminders.push(reminder);
-  save();
+  insert.run(reminder.id, reminder.text, reminder.createdAt, reminder.dueAt);
 
-  return reminder;
+  return toReminder(selectOne.get(reminder.id));
 };
 
-export const getReminders = () => reminders.map((reminder) => ({ ...reminder }));
+export const getReminders = () => selectAll.all().map(toReminder);
 
 export const setCompleted = (id, completed) => {
   assert(typeof completed === "boolean", 400, "Completed must be true or false");
 
-  const reminder = reminders.find((item) => item.id === id);
+  findOrFail(id);
 
-  assert(reminder, 404, "Reminder not found");
+  updateCompleted.run(completed ? 1 : 0, completed ? new Date().toISOString() : null, id);
 
-  reminder.completed = completed;
-  reminder.completedAt = completed ? new Date().toISOString() : null;
-  save();
-
-  return { ...reminder };
+  return toReminder(selectOne.get(id));
 };
 
 // Marks every reminder that is due and not yet announced, so the scheduler
 // never shows the same reminder twice. Returns the ones it announced.
 export const markDueNotified = (now = new Date()) => {
-  const fired = reminders.filter(
-    (reminder) =>
-      reminder.dueAt &&
-      !reminder.completed &&
-      !reminder.notifiedAt &&
-      new Date(reminder.dueAt) <= now
-  );
-
-  if (fired.length === 0) {
-    return [];
-  }
-
   const stamp = now.toISOString();
+  const due = selectDue.all(stamp);
 
-  fired.forEach((reminder) => {
-    reminder.notifiedAt = stamp;
-  });
+  due.forEach((row) => updateNotified.run(stamp, row.id));
 
-  save();
-
-  return fired.map((reminder) => ({ ...reminder }));
+  return due.map((row) => toReminder({ ...row, notified_at: stamp }));
 };
 
 export const deleteReminder = (id) => {
-  const index = reminders.findIndex((reminder) => reminder.id === id);
+  const row = findOrFail(id);
 
-  assert(index !== -1, 404, "Reminder not found");
+  remove.run(id);
 
-  const [removed] = reminders.splice(index, 1);
-  save();
-
-  return removed;
+  return toReminder(row);
 };

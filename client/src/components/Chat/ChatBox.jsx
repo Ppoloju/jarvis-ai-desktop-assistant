@@ -36,6 +36,7 @@ export default function ChatBox() {
 
   const {
     recognitionSupported,
+    voiceBlocked,
     listening,
     interim,
     voiceError,
@@ -203,6 +204,11 @@ export default function ChatBox() {
             onClick={handleMic}
             aria-label={listening ? "Stop listening" : "Start voice command"}
             aria-pressed={listening}
+            title={
+              voiceBlocked
+                ? "Voice needs Chrome or Edge: this desktop window blocks the microphone"
+                : undefined
+            }
             className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
               listening
                 ? "animate-pulse bg-rose-500 text-white"
@@ -234,6 +240,14 @@ export default function ChatBox() {
             ? interim || "Listening — speak now"
             : "Press Enter to send, or click the mic to talk."}
         </p>
+
+        {voiceBlocked && !voiceError && (
+          <p className="mt-1 text-xs text-amber-300/90" role="status">
+            Voice is off here: this desktop window blocks the microphone. Open{" "}
+            <span className="font-mono text-amber-200">{window.location.origin}</span> in Chrome or
+            Edge and the mic works there.
+          </p>
+        )}
 
         {voiceError && (
           <p className="mt-1 text-xs text-amber-300" role="status">

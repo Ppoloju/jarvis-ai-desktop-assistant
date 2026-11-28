@@ -10,6 +10,17 @@ const getRecognition =
 const synthesis =
   typeof window === "undefined" || !("speechSynthesis" in window) ? null : window.speechSynthesis;
 
+// Electron (the desktop app window) denies the microphone and ships no speech
+// service of its own, so voice can never start there. Chrome or Edge at the
+// same address can, which is what the mic button tells the user.
+const DESKTOP_WINDOW =
+  typeof navigator !== "undefined" && /Electron/i.test(navigator.userAgent || "");
+
+const whereToTalk =
+  typeof window === "undefined" ? "http://localhost:5173" : window.location.origin;
+
+const DESKTOP_VOICE_MESSAGE = `Voice cannot work in this desktop window: it blocks the microphone. Open ${whereToTalk} in Chrome or Edge to talk instead.`;
+
 const readMuted = () => {
   try {
     return window.localStorage.getItem(MUTE_KEY) === "1";
@@ -69,6 +80,11 @@ export function useSpeech({ onResult } = {}) {
   }, []);
 
   const start = useCallback(() => {
+    if (DESKTOP_WINDOW) {
+      setVoiceError(DESKTOP_VOICE_MESSAGE);
+      return;
+    }
+
     if (!getRecognition) {
       setVoiceError("Voice input is not supported in this browser. Chrome or Edge works best.");
       return;
@@ -196,6 +212,7 @@ export function useSpeech({ onResult } = {}) {
 
   return {
     recognitionSupported: Boolean(getRecognition),
+    voiceBlocked: DESKTOP_WINDOW,
     listening,
     interim,
     voiceError,

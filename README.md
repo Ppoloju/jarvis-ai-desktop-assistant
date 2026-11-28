@@ -4,8 +4,8 @@
 
 A local-first desktop assistant. A React dashboard talks to a small Node/Express API that answers
 questions, launches apps and websites, captures screenshots, manages scratch files and keeps
-reminders. There is no cloud account, API key or external service: everything runs on your machine
-and is stored on disk.
+reminders. No account or cloud sync is needed: everything runs and is stored on your machine. An
+optional AI key is the only thing that can send a message off this computer.
 
 Orbit is the new name for this project (it was previously called "Jarvis AI Desktop Assistant").
 "Orbit" is meant to suggest something that stays close to your machine and quietly handles the
@@ -51,7 +51,8 @@ typing. Useful phrases:
 - "remind me to stretch in 20 minutes" (a desktop notification appears when it comes due)
 - "what's in my downloads", "system info"
 
-- Voice input needs Chrome or Edge with microphone access. In an Electron window (including the packaged desktop app) the microphone is not granted and there is no bundled speech service, so typing is the only input there — open `http://localhost:5173` in Chrome to talk to it.
+- Voice input needs Chrome or Edge with microphone access. In an Electron window (including the packaged desktop app) the microphone is not granted and there is no bundled speech service, so typing is the only input there — the mic button says so when you click it; open
+`http://localhost:5173` in Chrome to talk to it.
 
 The API only ever receives the recognised text. Some browsers send the microphone audio to their own
 speech service to do the recognition, so check your browser's privacy settings if that matters.
@@ -89,20 +90,19 @@ machine and on loopback.
 ## Built With
 
 - **Frontend:** React 19, Vite, React Router, Tailwind CSS v4
-- **Backend:** Node.js (>= 20.11), Express 5, ES modules
-- **Storage:** local files and JSON under `server/storage` (no database)
+- **Backend:** Node.js (>= 22.13), Express 5, ES modules
+- **Storage:** SQLite at `server/storage/orbit.db` (tables `reminders` and `chat_turns`) plus your files under `server/storage`; chat history in browser localStorage
 - **Automation:** `open`, PowerShell (Windows screenshots), `screenshot-desktop` (other desktops),
   Node child processes
 - **Tooling:** ESLint, Node's built-in test runner
-- **Deployment:** Docker Compose (nginx for the static build, Node for the API)
+- **Deployment:** two local processes (Vite for the dashboard, Node for the API)
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 20.11 or newer
+- Node.js 22.13 or newer (the API uses Node's built-in SQLite)
 - npm
-- Docker Desktop, only if you want the container setup
 - An interactive desktop session, for screenshots and app launching
 
 ### Installation
@@ -159,7 +159,7 @@ machine and on loopback.
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `PORT` | `5000` | API port |
-| `HOST` | `127.0.0.1` | Interface the API binds to (Docker sets `0.0.0.0`) |
+| `HOST` | `127.0.0.1` | Interface the API binds to |
 | `CORS_ORIGINS` | localhost dev and preview origins | Browser origins allowed to call the API |
 | `ORBIT_DATA_DIR` | `server` | Storage root; files go to `storage/` and screenshots to `screenshots/` |
 | `ORBIT_HOME` | the current user's home | Home folder used by the read-only Desktop, Documents and Downloads browser (useful for tests) |
@@ -171,12 +171,23 @@ machine and on loopback.
 | `VITE_API_TARGET` | `http://localhost:5000` | Proxy target for the dev server |
 | `VITE_API_BASE` | empty | API origin, only when the client is served from a different origin |
 
+## Where the data lives
+
+Orbit keeps everything under `server/storage` (or `$ORBIT_DATA_DIR/storage`):
+
+- `orbit.db` — a SQLite database created on first start. Table `reminders` holds the text, due time
+  and done state; table `chat_turns` holds the last 24 messages that give the model its context.
+- Your Files entries, and `screenshots/` next to `storage/` for captures.
+
+To back up reminders and memory, stop the API and copy `orbit.db` (and its `-wal` file if present).
+Older versions kept those as `reminders.json` and `chat-memory.json`; the first start imports them
+into the database and keeps the old files beside it as `*.json.migrated`.
+
 ## Project Structure
 
 ```text
 orbit-ai-desktop-assistant/
   client/                     React dashboard
-    nginx/                    nginx template for the container build
     src/
       components/             Chat, Navbar, Sidebar, SystemInfo, ui
       layouts/
@@ -187,12 +198,11 @@ orbit-ai-desktop-assistant/
     controllers/
     middlewares/
     routes/
-    services/                 assistant, automation, files, laptop, reminders, system
+    services/                 ai, assistant, automation, db, files, laptop, reminders, system
     tests/
     utils/
     app.js                    express app, middleware and routes
     server.js                 entrypoint: dotenv, listen and graceful shutdown
-  docker-compose.yml
   LICENSE
 ```
 
@@ -239,54 +249,11 @@ input, `403` disallowed origin, `404` missing resource, `409` conflict, `413` pr
 The assistant is a deterministic intent matcher, not a language model. Its answers come from the same
 services the UI uses, so anything it reports can be checked on the corresponding page.
 
-## Docker
-
-The container setup serves a static production build through nginx, so there is no Vite dev server
-and no nodemon.
-
-```bash
-docker compose up -d --build   # build and start
-docker compose ps              # status
-docker compose stop            # free the resources when idle
-docker compose down            # remove containers, keep the data volume
-docker compose down -v         # remove containers and stored data
-```
-
-- App: http://localhost:8081
-- API: http://localhost:5000
-
-If the browser shows an old UI after a rebuild, it is serving a cached app shell: `index.html` is
-sent with `no-cache` so that should not happen any more, but a page loaded before that fix needs one
-hard reload (`Ctrl+Shift+R`) to pick it up. Rebuild with `--build` so the container gets the new files.
-
-The API binds to loopback outside Docker, and the published ports are bound to loopback as well.
-Resources are capped in `docker-compose.yml` at 0.50 CPU /
-256 MB for the API and 0.25 CPU / 64 MB for the web container. Files and reminders live in the
-`orbit-data` volume mounted at `/data`.
-
-### Limitations inside Docker
-
-Some features need your real desktop and cannot work in a Linux container:
-
-- Screenshot, open website and open app return `503` with a "no desktop display" message instead of
-  failing silently.
-- System info reports the container's platform and memory, not your machine's, and no battery is visible, so the battery card shows `N/A`.
-- Desktop, Documents and Downloads are the container user's home, not yours.
-
-To keep those features, run the API on the host and containerise only the frontend:
-
-```bash
-cd server && npm start
-cd .. && API_UPSTREAM=host.docker.internal:5000 docker compose up -d --no-deps web
-```
-
-On Linux, add `extra_hosts: ["host.docker.internal:host-gateway"]` to the web service.
-
 ## Challenges
 
 - **Filesystem safety:** user-supplied paths could escape the storage folder. Every path is resolved
   and checked against the storage root before any read or write, and internal entries such as the
-  reminders file are filtered out of listings. File previews add another read path, so they reuse the
+  database are filtered out of listings. File previews add another read path, so they reuse the
   same resolver and refuse folders, binary data and oversized files.
 - **Making read-only mean read-only:** the real-folder browser is implemented as a separate service
   with no create, rename, move or delete functions at all. Its routes are GET-only, so a stray POST
@@ -304,9 +271,10 @@ On Linux, add `extra_hosts: ["host.docker.internal:host-gateway"]` to the web se
 - **Ambiguous chat input:** a phrase like "remind me to time my run" matches both the time intent and
   the reminder intent. Reminder creation now runs before the simpler time/date/system checks, and
   laptop browsing requires both a folder word and a browse word.
-- **Persistent state without a database:** reminders are rewritten through a temporary file so a
-  crash cannot truncate the list. The trade-off is that the list lives in the API process, so only
-  one API instance should use a data directory at a time.
+- **Persistent state without a cloud:** reminders and chat memory live in a SQLite database opened
+  with `node:sqlite` and written synchronously, so nothing needs a server or a background service.
+  The trade-off is a newer Node requirement (22.13+) and a single-file database that should be
+  copied while the API is stopped.
 - **Cheap idle containers:** a Vite dev server and nodemon keep CPU busy. Serving a static build and
   running plain Node instead brings idle usage close to zero.
 - **Small UI consistency problems:** counts are pluralised in one place, async pages avoid setting
@@ -318,7 +286,8 @@ These are known and intentional, not unfinished work:
 
 - **Free-form chat is optional and remote.** Commands are deterministic pattern matching. If an AI
   key is set, only unmatched messages go to that provider; the model does not run locally, and those
-  messages leave this computer. Conversation memory is a capped local JSON file (`server/chat-memory.json`).
+  messages leave this computer. Conversation memory is a capped table (`chat_turns`, 24 turns) in the
+  local SQLite database.
 - **Single user, no authentication.** The API trusts whoever can reach it on loopback, which is why it also rejects requests addressed to a non-loopback hostname (DNS rebinding) and sends `no-store` along with conservative security headers. Keep it on loopback; do
   not expose port 5000 to a network. CORS limits browsers, not direct HTTP clients.
 - **App launching depends on shortcuts.** Chrome, VS Code and Calculator use fixed commands; anything
@@ -334,9 +303,8 @@ These are known and intentional, not unfinished work:
   reminder only fires while it is up. One that came due while it was off fires at the next start.
 - **History is browser-local.** It is stored in `localStorage` (newest 50 messages), is not synced
   between browsers, and clearing it cannot be undone.
-- **One API process per data directory.** The reminder list is held in memory and written back on
-  change; two API instances pointed at the same folder could overwrite each other.
-- **Docker loses desktop features** and reports container system information.
+- **One API process per data directory.** SQLite handles concurrent readers, but every API instance
+  runs its own due-reminder check, so two instances would announce the same reminder twice.
 - **Not a packaged desktop app.** There is no installer or tray icon; it runs as a local web app with
   two processes.
 - **Windows is the primary test target.** The server tests run on any OS, but screenshots, app
@@ -348,12 +316,10 @@ These are known and intentional, not unfinished work:
 
 `.github/workflows/ci.yml` runs on every push to `main` and on every pull request:
 
-- **Tests job**, on a matrix of `ubuntu-latest` / `windows-latest` and Node 20 / 22: `npm ci`
+- **Tests job**, on a matrix of `ubuntu-latest` / `windows-latest` and Node 22 / 24: `npm ci`
   in both packages, `npm run lint` in both, `npm test` for the API, then `npm run build` for the
   dashboard. Windows is in the matrix because screenshots, OneDrive folder discovery and app
   launching are Windows-specific paths that a Linux-only pipeline would never exercise.
-- **Docker job**, after the tests pass: builds both images (`server` and `client`) so a broken
-  Dockerfile or a missing lockfile entry fails the build instead of the first deployment.
 
 ## Tests
 

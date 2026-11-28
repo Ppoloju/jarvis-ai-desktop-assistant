@@ -1,7 +1,0 @@
-node_modules
-screenshots
-storage
-tests
-*.log
-.env
-npm-debug.log*

@@ -14,6 +14,7 @@ const homeDir = process.env.ORBIT_HOME;
 const appsDir = process.env.ORBIT_APPS_DIR;
 
 const { default: app } = await import("../app.js");
+const { closeDatabase } = await import("../services/db/db.service.js");
 
 let server;
 let base;
@@ -63,6 +64,7 @@ test.before(async () => {
 
 test.after(() => {
   server.close();
+  closeDatabase();
   fs.rmSync(process.env.ORBIT_DATA_DIR, { recursive: true, force: true });
   fs.rmSync(homeDir, { recursive: true, force: true });
   fs.rmSync(appsDir, { recursive: true, force: true });
@@ -248,17 +250,19 @@ test("allows screenshots to load from another origin", async () => {
   assert.equal(api.headers["cross-origin-resource-policy"], "same-origin");
 });
 
-test("keeps reminder bookkeeping out of the files page", async () => {
+test("keeps the database and old data files out of the files page", async () => {
   const storageDir = path.join(process.env.ORBIT_DATA_DIR, "storage");
   fs.mkdirSync(storageDir, { recursive: true });
   fs.writeFileSync(path.join(storageDir, "reminders.json.tmp"), "{}");
-  fs.writeFileSync(path.join(storageDir, "reminders.json.corrupt-123"), "garbage");
+  fs.writeFileSync(path.join(storageDir, "chat-memory.json.migrated"), "{}");
 
   const { entries } = await (await call("/api/files")).json();
   const names = entries.map((entry) => entry.name);
 
-  assert.ok(!names.includes("reminders.json"), "the reminder list is hidden");
+  assert.ok(!names.includes("orbit.db"), "the SQLite database is hidden");
+  assert.ok(!names.some((name) => name.startsWith("orbit.db-")));
   assert.ok(!names.some((name) => name.startsWith("reminders.json.")));
+  assert.ok(!names.some((name) => name.startsWith("chat-memory.json.")));
 });
 
 test("rejects oversized chat messages and reminders", async () => {
@@ -584,23 +588,27 @@ test("explains the AI setup when a message has no matching command", async () =>
   assert.match(data.reply, /add an AI key/i);
 });
 
-test("remembers the conversation and forgets it on request", async () => {
+test("remembers the conversation in SQLite and forgets it on request", async () => {
+  const { db, dbFile } = await import("../services/db/db.service.js");
+
   await postJson("/api/chat", { message: "what time is it" });
 
-  const memoryFile = path.join(process.env.ORBIT_DATA_DIR, "chat-memory.json");
-  const saved = JSON.parse(fs.readFileSync(memoryFile, "utf8"));
+  const saved = db.prepare("SELECT role, content FROM chat_turns ORDER BY rowid").all();
 
-  assert.ok(saved.turns.some((turn) => turn.role === "user" && turn.content === "what time is it"));
-  assert.ok(saved.turns.some((turn) => turn.role === "assistant" && turn.content.length > 0));
+  assert.ok(saved.some((turn) => turn.role === "user" && turn.content === "what time is it"));
+  assert.ok(saved.some((turn) => turn.role === "assistant" && turn.content.length > 0));
+
+  assert.equal(path.basename(dbFile), "orbit.db");
+  assert.ok(fs.existsSync(dbFile), "the SQLite database file exists");
 
   const { entries } = await (await call("/api/files")).json();
 
-  assert.ok(!entries.some((entry) => entry.name.startsWith("chat-memory.json")));
+  assert.ok(!entries.some((entry) => entry.name.startsWith("orbit.db")));
 
   const cleared = await (await call("/api/chat/memory", { method: "DELETE" })).json();
 
   assert.equal(cleared.cleared, true);
-  assert.deepEqual(JSON.parse(fs.readFileSync(memoryFile, "utf8")).turns, []);
+  assert.equal(db.prepare("SELECT COUNT(*) AS total FROM chat_turns").get().total, 0);
 });
 
 test("sends free-form questions to the configured model with history", async () => {

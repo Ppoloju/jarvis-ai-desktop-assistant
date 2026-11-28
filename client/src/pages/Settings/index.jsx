@@ -12,14 +12,14 @@ const rows = [
   ["Application", "Orbit Desktop Assistant"],
   ["Version", "1.0.0"],
   ["Runtime", "Local (Node + React)"],
-  ["API endpoint", API_BASE || "Same origin (proxied by nginx or Vite)"],
-  ["Data storage", "server/storage and browser localStorage"],
+  ["API endpoint", API_BASE || "Same origin (proxied by Vite)"],
+  ["Data storage", "SQLite (server/storage/orbit.db) and browser localStorage"],
 ];
 
 const privacy = [
   "Everything stays on this computer. There is no account, analytics, telemetry or cloud sync.",
   "The API listens on 127.0.0.1 only, rejects requests addressed to other hostnames, and sends no-store caching for its data.",
-  "Files, reminders and chat history are stored in plain files on this machine; treat that folder like any other local data.",
+  "Files are plain files on this machine and reminders plus chat memory live in a local SQLite database; treat that folder like any other local data.",
   "Voice input is handled by your browser and may be sent to its speech service. Typing never leaves the machine.",
   "Web pages and searches open in your own browser. Nothing else is fetched from the internet.",
 ];

@@ -1,5 +1,6 @@
 import "dotenv/config";
 import app from "./app.js";
+import { closeDatabase } from "./services/db/db.service.js";
 import { startReminderScheduler } from "./services/reminders/scheduler.js";
 
 const PORT = Number(process.env.PORT) || 5000;
@@ -25,7 +26,10 @@ server.on("error", (error) => {
 const shutdown = (signal) => {
   console.log(`${signal} received, shutting down.`);
 
-  server.close(() => process.exit(0));
+  server.close(() => {
+    closeDatabase();
+    process.exit(0);
+  });
 
   // Do not wait forever for keep-alive connections to end
   setTimeout(() => process.exit(0), 5000).unref();
