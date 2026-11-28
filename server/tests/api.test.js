@@ -315,7 +315,7 @@ test("assistant reports system status and handles unknown input", async () => {
     await postJson("/api/chat", { message: "tell me a joke about penguins" })
   ).json();
 
-  assert.match(unknown.reply, /not sure how to help/i);
+  assert.match(unknown.reply, /do not have a matching command/i);
   assert.match(unknown.reply, /what time is it/i);
 });
 
@@ -575,4 +575,65 @@ test("assistant sets timed reminders from speech", async () => {
 
   assert.match(listed.reply, /stretch/);
   assert.match(listed.reply, /due/i);
+});
+
+test("explains the AI setup when a message has no matching command", async () => {
+  const data = await (await postJson("/api/chat", { message: "tell me a joke about penguins" })).json();
+
+  assert.equal(data.source, "commands");
+  assert.match(data.reply, /add an AI key/i);
+});
+
+test("remembers the conversation and forgets it on request", async () => {
+  await postJson("/api/chat", { message: "what time is it" });
+
+  const memoryFile = path.join(process.env.ORBIT_DATA_DIR, "chat-memory.json");
+  const saved = JSON.parse(fs.readFileSync(memoryFile, "utf8"));
+
+  assert.ok(saved.turns.some((turn) => turn.role === "user" && turn.content === "what time is it"));
+  assert.ok(saved.turns.some((turn) => turn.role === "assistant" && turn.content.length > 0));
+
+  const { entries } = await (await call("/api/files")).json();
+
+  assert.ok(!entries.some((entry) => entry.name.startsWith("chat-memory.json")));
+
+  const cleared = await (await call("/api/chat/memory", { method: "DELETE" })).json();
+
+  assert.equal(cleared.cleared, true);
+  assert.deepEqual(JSON.parse(fs.readFileSync(memoryFile, "utf8")).turns, []);
+});
+
+test("sends free-form questions to the configured model with history", async () => {
+  const { answer } = await import("../services/ai/ai.service.js");
+  const originalFetch = global.fetch;
+  const requests = [];
+
+  process.env.AI_API_KEY = "test-key";
+
+  try {
+    global.fetch = async (url, options) => {
+      requests.push({ url, headers: options.headers, body: JSON.parse(options.body) });
+
+      return new Response(
+        JSON.stringify({ choices: [{ message: { content: "Penguins are flightless birds." } }] }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    };
+
+    const reply = await answer("tell me about penguins");
+
+    assert.equal(reply, "Penguins are flightless birds.");
+    assert.equal(requests[0].url, "https://api.z.ai/api/paas/v4/chat/completions");
+    assert.equal(requests[0].headers.Authorization, "Bearer test-key");
+    assert.equal(requests[0].body.model, "glm-4-flash");
+    assert.equal(requests[0].body.messages[0].role, "system");
+    assert.equal(requests[0].body.messages.at(-1).content, "tell me about penguins");
+
+    global.fetch = async () => new Response("nope", { status: 500 });
+
+    await assert.rejects(() => answer("another question"), /service returned 500/);
+  } finally {
+    global.fetch = originalFetch;
+    delete process.env.AI_API_KEY;
+  }
 });

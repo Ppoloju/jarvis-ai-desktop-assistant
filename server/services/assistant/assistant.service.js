@@ -4,6 +4,8 @@ import * as files from "../files/files.service.js";
 import * as laptop from "../laptop/laptop.service.js";
 import * as automation from "../automation/automation.service.js";
 import { getSystemInfo } from "../system/system.service.js";
+import * as memory from "../ai/memory.service.js";
+import * as ai from "../ai/ai.service.js";
 
 const CAPABILITIES = [
   ["Time and date", "what time is it"],
@@ -394,7 +396,29 @@ const automationReply = async (target) => {
   };
 };
 
-export const reply = async (message) => {
+const COMMAND_EXAMPLES = SUGGESTED_FALLBACK.map((item) => `"${item}"`).join(", ");
+
+// Anything the command list does not cover becomes a normal conversation; without
+// an API key the assistant explains what it can still do instead of guessing.
+const fallbackReply = async (text) => {
+  if (!ai.isConfigured()) {
+    return {
+      reply: `I do not have a matching command for "${text}" yet.\n\nTry one of these: ${COMMAND_EXAMPLES}.\n\nTo chat about anything, add an AI key (see the README) and try again.`,
+      source: "commands",
+    };
+  }
+
+  try {
+    return { reply: await ai.answer(text), source: "ai" };
+  } catch (error) {
+    return {
+      reply: `I could not reach the AI service: ${error.message}. Your commands still work.`,
+      source: "error",
+    };
+  }
+};
+
+const route = async (message) => {
   const text = message.trim();
   const lower = text.toLowerCase();
 
@@ -522,9 +546,19 @@ export const reply = async (message) => {
     return automationReply(openMatch[1]);
   }
 
-  return {
-    reply: `I am not sure how to help with "${text}" yet.\n\nTry one of these: ${SUGGESTED_FALLBACK.map(
-      (item) => `"${item}"`
-    ).join(", ")}.`,
-  };
+  return fallbackReply(text);
 };
+
+// Every message and answer is remembered, so follow-up questions have context.
+export const reply = async (message) => {
+  const answer = await route(message);
+
+  memory.addTurn("user", message);
+  memory.addTurn("assistant", answer.reply);
+
+  return answer;
+};
+
+export const clearMemory = () => memory.clearTurns();
+
+export const aiStatus = () => ai.describe();

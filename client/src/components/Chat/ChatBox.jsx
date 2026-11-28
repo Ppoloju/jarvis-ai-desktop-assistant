@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { sendMessage } from "../../services/api";
+import { sendMessage, clearChatMemory } from "../../services/api";
 import {
   getChatHistory,
   saveChatHistory,
@@ -78,7 +78,10 @@ export default function ChatBox() {
       try {
         const data = await sendMessage(trimmed);
 
-        setChat((prev) => [...prev, { user: trimmed, bot: data.reply }]);
+        setChat((prev) => [
+          ...prev,
+          { user: trimmed, bot: data.reply, source: data.source },
+        ]);
         speak(data.reply);
       } catch (err) {
         setError(err.message);
@@ -153,6 +156,7 @@ export default function ChatBox() {
                 type="button"
                 onClick={() => {
                   clearChatHistory();
+                  clearChatMemory().catch(() => {});
                   setChat([]);
                 }}
                 className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-400 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
@@ -273,6 +277,11 @@ export default function ChatBox() {
                     <Icon name="sparkles" className="h-3.5 w-3.5" />
                   </span>
                   <div className="max-w-[82%] whitespace-pre-line rounded-2xl rounded-tl-sm bg-white/5 px-4 py-2.5 text-sm text-slate-200 ring-1 ring-white/10">
+                    {entry.source === "ai" && (
+                      <span className="mb-1 mr-2 inline-block rounded bg-indigo-500/25 px-1.5 py-0.5 align-middle text-[10px] font-semibold uppercase tracking-wide text-indigo-200">
+                        AI
+                      </span>
+                    )}
                     {entry.bot}
                   </div>
                 </div>

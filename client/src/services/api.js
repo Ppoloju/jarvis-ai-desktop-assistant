@@ -26,6 +26,9 @@ export const assetUrl = (path) => `${API_BASE}${path}`;
 export const sendMessage = async (message) =>
   request("/api/chat", jsonOptions("POST", { message }));
 
+export const clearChatMemory = async () =>
+  request("/api/chat/memory", { method: "DELETE" });
+
 // Automation API
 export const openWebsite = async (url) =>
   request("/api/automation/open-website", jsonOptions("POST", { url }));

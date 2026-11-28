@@ -70,6 +70,11 @@ app.post("/api/chat", async (req, res) => {
   res.json(await assistant.reply(message));
 });
 
+app.delete("/api/chat/memory", (req, res) => {
+  assistant.clearMemory();
+  res.json({ success: true, cleared: true });
+});
+
 app.get("/api/health", (req, res) => {
   let storageWritable = true;
 
@@ -85,6 +90,7 @@ app.get("/api/health", (req, res) => {
     version: process.env.npm_package_version || "1.0.0",
     uptimeSeconds: Math.round(process.uptime()),
     storageWritable,
+    ai: assistant.aiStatus(),
   });
 });
 
@@ -95,7 +101,7 @@ app.get("/api", (req, res) => {
     endpoints: {
       system: "GET /api/system/info",
       health: "GET /api/health",
-      chat: "POST /api/chat",
+      chat: ["POST /api/chat", "DELETE /api/chat/memory"],
       automation: [
         "POST /api/automation/open-website",
         "POST /api/automation/open-app",

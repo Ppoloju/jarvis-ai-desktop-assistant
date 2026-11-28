@@ -31,6 +31,7 @@ containers that stay idle-cheap.
 | **Automation** | Opens http/https websites, launches Chrome, VS Code or Calculator, launches any app installed on this computer, and captures a screenshot. The newest 20 captures are kept and shown in a small gallery. |
 | **Files** | A sandboxed workspace for scratch text files inside the app's own storage folder (`server/storage`). You can create folders and files, rename them, delete them, and preview text contents. **This is not your real Desktop, Documents or Downloads.** |
 | **My computer** | A read-only browser for your real Desktop, Documents and Downloads. It lists names, types, sizes and dates and lets you open subfolders, but it cannot create, rename, move or delete anything there. |
+| **Free-form chat** | Anything the command list does not cover goes to an optional OpenAI-compatible model (Z.ai by default), with the last few turns kept as local context. Each reply it produces is tagged **AI**. |
 | **Reminders** | A persisted to-do list with optional due times ("in 20 minutes", "at 5pm", "tomorrow at 9am"). While the API is running, a background check announces due reminders with a desktop notification. |
 | **History** | Conversation history saved in this browser, with a one-click clear action. |
 | **Settings** | App information and conversation-history controls. |
@@ -49,6 +50,8 @@ typing. Useful phrases:
 - "remind me to call Sam", then "mark reminder 1 done"
 - "remind me to stretch in 20 minutes" (a desktop notification appears when it comes due)
 - "what's in my downloads", "system info"
+
+- Voice input needs Chrome or Edge with microphone access. In an Electron window (including the packaged desktop app) the microphone is not granted and there is no bundled speech service, so typing is the only input there — open `http://localhost:5173` in Chrome to talk to it.
 
 The API only ever receives the recognised text. Some browsers send the microphone audio to their own
 speech service to do the recognition, so check your browser's privacy settings if that matters.
@@ -162,6 +165,9 @@ machine and on loopback.
 | `ORBIT_HOME` | the current user's home | Home folder used by the read-only Desktop, Documents and Downloads browser (useful for tests) |
 | `ORBIT_APPS_DIR` | the platform's shortcut folders | Shortcut folders scanned for installed apps, separated by the platform path separator (useful for tests) |
 | `ORBIT_NO_NOTIFY` | unset | Set to `1` to suppress desktop notifications (used by the tests) |
+| `AI_API_KEY` | unset | Key for an OpenAI-compatible chat provider; without it the assistant only runs commands (aliases: `ZAI_API_KEY`, `OPENAI_API_KEY`) |
+| `AI_BASE_URL` | `https://api.z.ai/api/paas/v4` | Provider base URL, e.g. `https://api.openai.com/v1` |
+| `AI_MODEL` | `glm-4-flash` | Model used for free-form answers |
 | `VITE_API_TARGET` | `http://localhost:5000` | Proxy target for the dev server |
 | `VITE_API_BASE` | empty | API origin, only when the client is served from a different origin |
 
@@ -198,6 +204,7 @@ orbit-ai-desktop-assistant/
 | GET | `/api` | Index of available endpoints |
 | GET | `/api/health` | Status, version, uptime and whether the data folder is writable |
 | POST | `/api/chat` | Ask the local assistant |
+| DELETE | `/api/chat/memory` | Forget the remembered conversation (the Clear button does this) |
 | GET | `/api/system/info` | Platform, CPU, memory, uptime and battery |
 | POST | `/api/automation/open-website` | Open an http/https URL |
 | POST | `/api/automation/open-app` | Launch a built-in app or one installed on this computer |
@@ -309,8 +316,9 @@ On Linux, add `extra_hosts: ["host.docker.internal:host-gateway"]` to the web se
 
 These are known and intentional, not unfinished work:
 
-- **No AI model.** Understanding is deterministic pattern matching. Unknown or very varied phrasing
-  gets a suggestion list rather than an answer. There is no local LLM backend.
+- **Free-form chat is optional and remote.** Commands are deterministic pattern matching. If an AI
+  key is set, only unmatched messages go to that provider; the model does not run locally, and those
+  messages leave this computer. Conversation memory is a capped local JSON file (`server/chat-memory.json`).
 - **Single user, no authentication.** The API trusts whoever can reach it on loopback, which is why it also rejects requests addressed to a non-loopback hostname (DNS rebinding) and sends `no-store` along with conservative security headers. Keep it on loopback; do
   not expose port 5000 to a network. CORS limits browsers, not direct HTTP clients.
 - **App launching depends on shortcuts.** Chrome, VS Code and Calculator use fixed commands; anything
