@@ -66,6 +66,3 @@ Run the client linter and build:
 ```bash
 cd client && npm run lint && npm run build
 ```
-
-## License
-MIT
