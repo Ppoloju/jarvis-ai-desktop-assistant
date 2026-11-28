@@ -542,6 +542,43 @@ test("parses reminder times from text", async () => {
   assert.equal(parseDueDate("buy milk", now).dueAt, null);
 });
 
+test("parses daily and weekly reminders", async () => {
+  const { parseDueDate, parseSnoozeMinutes } = await import("../services/reminders/due.js");
+  const now = new Date("2026-03-04T10:00:00");
+
+  const daily = parseDueDate("take pills every day at 9am", now);
+
+  assert.equal(daily.text, "take pills");
+  assert.equal(daily.repeat, "daily");
+  assert.equal(new Date(daily.dueAt).getDate(), 5);
+  assert.equal(new Date(daily.dueAt).getHours(), 9);
+
+  const evening = parseDueDate("walk the dog daily at 6pm", now);
+
+  assert.equal(evening.text, "walk the dog");
+  assert.equal(new Date(evening.dueAt).getDate(), 4);
+  assert.equal(new Date(evening.dueAt).getHours(), 18);
+
+  const weekly = parseDueDate("water the plants every week at 9am", now);
+
+  assert.equal(weekly.text, "water the plants");
+  assert.equal(weekly.repeat, "weekly");
+  assert.equal(new Date(weekly.dueAt).getDate(), 11);
+  assert.equal(new Date(weekly.dueAt).getHours(), 9);
+
+  const weeklyEvening = parseDueDate("call home weekly at 6pm", now);
+
+  assert.equal(new Date(weeklyEvening.dueAt).getDate(), 4);
+  assert.equal(new Date(weeklyEvening.dueAt).getHours(), 18);
+
+  assert.equal(parseDueDate("buy milk", now).repeat, null);
+  assert.equal(parseSnoozeMinutes("10 minutes"), 10);
+  assert.equal(parseSnoozeMinutes("an hour"), 60);
+  assert.equal(parseSnoozeMinutes("half an hour"), 30);
+  assert.equal(parseSnoozeMinutes("2 days"), 2 * 24 * 60);
+  assert.equal(parseSnoozeMinutes("sometime"), null);
+});
+
 test("fires due reminders exactly once", async () => {
   const reminders = await import("../services/reminders/reminders.service.js");
   const { fireDueReminders } = await import("../services/reminders/scheduler.js");
@@ -564,6 +601,34 @@ test("fires due reminders exactly once", async () => {
   reminders.deleteReminder(created.id);
 });
 
+test("advances a recurring reminder after it fires", async () => {
+  const reminders = await import("../services/reminders/reminders.service.js");
+  const { fireDueReminders } = await import("../services/reminders/scheduler.js");
+
+  const created = reminders.addReminder("take the pills every day in 1 minute");
+
+  assert.equal(created.text, "take the pills");
+  assert.equal(created.repeat, "daily");
+  assert.ok(created.dueAt);
+
+  const later = new Date(Date.now() + 2 * 60_000);
+  const fired = fireDueReminders(later).filter((reminder) => reminder.id === created.id);
+
+  assert.equal(fired.length, 1);
+
+  const stored = reminders.getReminders().find((reminder) => reminder.id === created.id);
+  const gap = new Date(stored.dueAt).getTime() - new Date(created.dueAt).getTime();
+
+  assert.ok(gap >= 23 * 60 * 60_000 && gap <= 25 * 60 * 60_000, "moves to the next day");
+  assert.ok(new Date(stored.dueAt) > later);
+  assert.equal(stored.notifiedAt, null, "the next occurrence is not marked as sent");
+  assert.equal(stored.repeat, "daily");
+
+  assert.equal(fireDueReminders(later).filter((reminder) => reminder.id === created.id).length, 0);
+
+  reminders.deleteReminder(created.id);
+});
+
 test("assistant sets timed reminders from speech", async () => {
   const added = await (
     await postJson("/api/chat", { message: "remind me to stretch in 20 minutes" })
@@ -582,6 +647,73 @@ test("assistant sets timed reminders from speech", async () => {
 
   assert.match(listed.reply, /stretch/);
   assert.match(listed.reply, /due/i);
+});
+
+test("snoozes a reminder over the API", async () => {
+  const { reminder } = await (
+    await postJson("/api/reminders", { text: "call the plumber" })
+  ).json();
+
+  const snoozed = await postJson(`/api/reminders/${reminder.id}/snooze`, { minutes: 10 });
+
+  assert.equal(snoozed.status, 200);
+
+  const body = await snoozed.json();
+  const gap = new Date(body.reminder.dueAt).getTime() - Date.now();
+
+  assert.ok(gap > 9 * 60_000 && gap < 11 * 60_000);
+  assert.equal(body.reminder.notifiedAt, null);
+  assert.equal(body.reminder.completed, false);
+
+  assert.equal((await postJson(`/api/reminders/${reminder.id}/snooze`, { minutes: 0 })).status, 400);
+  assert.equal((await postJson("/api/reminders/missing/snooze", { minutes: 5 })).status, 404);
+
+  await call(`/api/reminders/${reminder.id}`, { method: "DELETE" });
+});
+
+test("assistant adds recurring reminders and snoozes them", async () => {
+  const reminders = await import("../services/reminders/reminders.service.js");
+
+  const added = await (
+    await postJson("/api/chat", { message: "remind me to take the bins out every week at 7pm" })
+  ).json();
+
+  assert.match(added.reply, /Added reminder: take the bins out/);
+  assert.match(added.reply, /every week/i);
+
+  const bins = reminders
+    .getReminders()
+    .findLast((reminder) => reminder.text === "take the bins out");
+
+  assert.ok(bins, "the recurring reminder is saved");
+  assert.equal(bins.repeat, "weekly");
+  assert.ok(bins.dueAt);
+
+  const snoozed = await (
+    await postJson("/api/chat", { message: "snooze the bins reminder for 10 minutes" })
+  ).json();
+
+  assert.match(snoozed.reply, /Snoozed "take the bins out"/i);
+  assert.match(snoozed.reply, /repeats weekly/i);
+
+  const after = reminders.getReminders().find((reminder) => reminder.id === bins.id);
+  const gap = new Date(after.dueAt).getTime() - Date.now();
+
+  assert.ok(gap > 9 * 60_000 && gap < 11 * 60_000, "the due time moves forward");
+
+  const missing = await (
+    await postJson("/api/chat", { message: "snooze the zzzz reminder for 10 minutes" })
+  ).json();
+
+  assert.match(missing.reply, /could not find/i);
+
+  const noDuration = await (
+    await postJson("/api/chat", { message: "snooze reminder 1 for a while" })
+  ).json();
+
+  assert.match(noDuration.reply, /how long to snooze/i);
+
+  reminders.deleteReminder(bins.id);
 });
 
 test("explains the AI setup when a message has no matching command", async () => {

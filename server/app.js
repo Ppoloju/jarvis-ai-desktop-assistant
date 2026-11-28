@@ -132,6 +132,7 @@ app.get("/api", (req, res) => {
         "GET /api/reminders",
         "POST /api/reminders",
         "PATCH /api/reminders/:id",
+        "POST /api/reminders/:id/snooze",
         "DELETE /api/reminders/:id",
       ],
     },

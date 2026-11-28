@@ -1,5 +1,5 @@
 import * as reminders from "../reminders/reminders.service.js";
-import { dueLabel } from "../reminders/due.js";
+import { dueLabel, parseSnoozeMinutes } from "../reminders/due.js";
 import * as files from "../files/files.service.js";
 import * as laptop from "../laptop/laptop.service.js";
 import * as automation from "../automation/automation.service.js";
@@ -17,6 +17,8 @@ const CAPABILITIES = [
   ["Web search", "search the web for espresso"],
   ["Reminders", "remind me to call Sam"],
   ["Timed reminder", "remind me to stretch in 20 minutes"],
+  ["Recurring reminder", "remind me to take pills every day at 9am"],
+  ["Snooze a reminder", "snooze reminder 1 for 10 minutes"],
   ["Your reminders", "list my reminders"],
   ["Stored files", "list files"],
   ["Read a stored file", "read notes.txt"],
@@ -270,7 +272,7 @@ const remindersReply = () => {
   const lines = list
     .map((reminder, index) => {
       const due = reminder.dueAt
-        ? ` (due ${dueLabel(reminder.dueAt)}${reminder.notifiedAt ? ", sent" : ""})`
+        ? ` (due ${dueLabel(reminder.dueAt)}${reminder.notifiedAt ? ", sent" : ""}${reminder.repeat ? `, ${reminder.repeat}` : ""})`
         : "";
 
       return `${index + 1}. ${reminder.completed ? "[done] " : ""}${reminder.text}${due}`;
@@ -282,7 +284,11 @@ const remindersReply = () => {
 
 const findReminder = (target) => {
   const list = reminders.getReminders();
-  const trimmed = target.trim().replace(/^["']|["']$/g, "");
+  const trimmed = target
+    .trim()
+    .replace(/^["']|["']$/g, "")
+    .replace(/^the\s+/i, "")
+    .replace(/\s+reminder$/i, "");
 
   if (/^\d+$/.test(trimmed)) {
     return list[Number(trimmed) - 1] || null;
@@ -396,6 +402,49 @@ const automationReply = async (target) => {
   };
 };
 
+const repeatLabel = (repeat) =>
+  repeat === "weekly" ? "every week" : repeat === "daily" ? "every day" : "";
+
+// "snooze reminder 1 for 10 minutes", "snooze the milk reminder for an hour"
+const findSnoozeTarget = (target) => {
+  if (/^(it|this|that)$/i.test(target.trim())) {
+    return [...reminders.getReminders()].reverse().find((item) => !item.completed) ?? null;
+  }
+
+  return findReminder(target);
+};
+
+const snoozeReply = (target, duration) => {
+  const minutes = parseSnoozeMinutes(duration);
+
+  if (!minutes) {
+    return {
+      reply:
+        'Tell me how long to snooze it for, for example "snooze reminder 1 for 10 minutes".',
+    };
+  }
+
+  if (minutes > reminders.MAX_SNOOZE_MINUTES) {
+    return { reply: "A snooze can be at most a week. Try 10 minutes, an hour or a day." };
+  }
+
+  const reminder = findSnoozeTarget(target);
+
+  if (!reminder) {
+    return {
+      reply: `I could not find a reminder matching "${target.trim()}". Say "list my reminders".`,
+    };
+  }
+
+  const snoozed = reminders.snoozeReminder(reminder.id, minutes);
+
+  return {
+    reply: `Snoozed "${snoozed.text}" until ${dueLabel(snoozed.dueAt)}${
+      snoozed.repeat ? ` (repeats ${snoozed.repeat})` : ""
+    }.`,
+  };
+};
+
 const COMMAND_EXAMPLES = SUGGESTED_FALLBACK.map((item) => `"${item}"`).join(", ");
 
 // Anything the command list does not cover becomes a normal conversation; without
@@ -450,7 +499,7 @@ const route = async (message) => {
   if (addReminder) {
     const reminder = reminders.addReminder(addReminder[1]);
     const when = reminder.dueAt
-      ? ` I will remind you ${dueLabel(reminder.dueAt)} with a desktop notification.`
+      ? ` I will remind you ${dueLabel(reminder.dueAt)}${reminder.repeat ? ` and ${repeatLabel(reminder.repeat)}` : ""} with a desktop notification.`
       : "";
 
     return { reply: `Added reminder: ${reminder.text}.${when}` };
@@ -472,6 +521,14 @@ const route = async (message) => {
 
   if (deleteMatch) {
     return deleteReminderReply(deleteMatch[1]);
+  }
+
+  const snoozeMatch = text.match(
+    /^snooze\s+(?:the\s+)?(?:reminder\s+)?(.+?)\s+(?:for|by)\s+(.+)$/i
+  );
+
+  if (snoozeMatch) {
+    return snoozeReply(snoozeMatch[1], snoozeMatch[2]);
   }
 
   if (/reminder/.test(lower)) {

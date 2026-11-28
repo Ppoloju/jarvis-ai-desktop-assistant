@@ -45,7 +45,7 @@ that stays close to your machine and quietly handles the small things.
 | **Files** | A sandboxed scratch space inside `server/storage`: create folders and text files, rename them, delete them and preview contents. **This is not your real Desktop, Documents or Downloads.** |
 | **My computer** | A read-only browser for your real Desktop, Documents and Downloads. It shows names, types, sizes and dates and opens subfolders, but cannot create, rename, move or delete anything there. |
 | **Free-form chat** | Anything the command list does not cover goes to a model: Ollama on this computer when it is running (no key, nothing leaves the machine), otherwise a remote OpenAI-compatible provider when `AI_API_KEY` is set. Recent turns are kept as local context, and each model reply is tagged **AI**. |
-| **Reminders** | A persisted to-do list with optional due times ("in 20 minutes", "at 5pm", "tomorrow at 9am"). While the API runs, a background check announces due reminders with a desktop notification. |
+| **Reminders** | A persisted to-do list with optional due times ("in 20 minutes", "at 5pm", "tomorrow at 9am") and daily or weekly repeats. While the API runs, a background check announces due reminders with a desktop notification, and a command can snooze one. |
 | **History** | Conversation history saved in this browser, with a one-click clear action. |
 | **Settings** | App information, AI status with a local-model picker, one-click database backups, an "Open data folder" button and conversation-history controls. |
 
@@ -62,6 +62,8 @@ typing.
 - "search the web for espresso"
 - "remind me to call Sam", then "mark reminder 1 done"
 - "remind me to stretch in 20 minutes" (a desktop notification appears when it comes due)
+- "remind me to take pills every day at 9am" or "water the plants every week at 6pm"
+- "snooze reminder 1 for 10 minutes" or "snooze the bins reminder for an hour"
 - "what's in my downloads", "system info", "what can you do"
 
 Voice input needs a microphone and, in practice, Chrome or Edge. If the dashboard is opened inside an
@@ -306,6 +308,7 @@ orbit-ai-desktop-assistant/
 | GET | `/api/reminders` | List reminders |
 | POST | `/api/reminders` | Create a reminder; a time phrase in the text sets its due time |
 | PATCH | `/api/reminders/:id` | Mark a reminder done or open |
+| POST | `/api/reminders/:id/snooze` | Postpone a reminder by `minutes` and make it open again |
 | DELETE | `/api/reminders/:id` | Delete a reminder |
 
 Screenshots are served from `/screenshots/<file>`. Errors use real status codes: `400` invalid
@@ -316,6 +319,7 @@ not a text file, `503` desktop unavailable.
 
 - `what time is it`, `system info`, `what can you do`
 - `remind me to call Sam`, `remind me to stretch in 20 minutes`, `list my reminders`
+- `remind me to take pills every day at 9am`, `snooze reminder 1 for 10 minutes`
 - `list files`, `read notes.txt`
 - `what's in my downloads`, `list documents/Projects`
 - `open google.com`, `open calculator`, `open spotify`
@@ -347,7 +351,8 @@ These are known and intentional, not unfinished work:
   folders-first alphabetical order.
 - **File previews are text only and capped at 256 KB.** Binary files return `415`.
 - **Timed reminders need the API running.** The due-time check lives in the API process, so a reminder
-  only fires while it is up. One that came due while it was off fires at the next start.
+  only fires while it is up. One that came due while it was off fires at the next start. Recurring
+  reminders then move to their next daily or weekly occurrence, skipping ones missed while it was off.
 - **History is browser-local.** It lives in `localStorage` (newest 50 messages), is not synced between
   browsers, and clearing it cannot be undone.
 - **One API process per data directory.** SQLite handles concurrent readers, but every API instance
@@ -376,7 +381,6 @@ pipeline would never exercise.
 
 Not started, and out of scope for this version:
 
-- Recurring reminders (daily, weekly) and snooze
 - Tool calling, so a model can request a deterministic Orbit command instead of only describing it
 - A packaged desktop build with a tray icon and autostart
 - Full-text search over stored files and conversation memory

@@ -25,7 +25,8 @@ db.exec(`
     completed INTEGER NOT NULL DEFAULT 0,
     completed_at TEXT,
     due_at TEXT,
-    notified_at TEXT
+    notified_at TEXT,
+    repeat_rule TEXT
   );
 
   CREATE TABLE IF NOT EXISTS chat_turns (
@@ -44,6 +45,16 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS reminders_due ON reminders (completed, due_at);
   DROP INDEX IF EXISTS chat_turns_recent;
 `);
+
+// Databases created before recurring reminders have no repeat column yet.
+const reminderColumns = db
+  .prepare("PRAGMA table_info(reminders)")
+  .all()
+  .map((column) => column.name);
+
+if (!reminderColumns.includes("repeat_rule")) {
+  db.exec("ALTER TABLE reminders ADD COLUMN repeat_rule TEXT");
+}
 
 // Mirrors the cap in memory.service.js: keep the newest turns only.
 const MAX_TURNS = 24;

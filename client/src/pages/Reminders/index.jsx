@@ -198,6 +198,11 @@ export default function Reminders() {
                           {formatDateTime(reminder.dueAt)}
                         </span>
                       )}
+                      {reminder.repeat && (
+                        <span className="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 font-medium text-indigo-700">
+                          {reminder.repeat === "weekly" ? "Weekly" : "Daily"}
+                        </span>
+                      )}
                       <span>Added {formatDateTime(reminder.createdAt)}</span>
                     </div>
                   </div>

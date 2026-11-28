@@ -23,6 +23,8 @@ const runImport = (dataDir) => {
       reminders: count("reminders"),
       turns: count("chat_turns"),
       dues: db.prepare("SELECT due_at FROM reminders ORDER BY rowid").all().map((row) => row.due_at),
+      repeats: db.prepare("SELECT repeat_rule FROM reminders ORDER BY rowid").all().map((row) => row.repeat_rule),
+      repeatColumn: db.prepare("PRAGMA table_info(reminders)").all().some((column) => column.name === "repeat_rule"),
       turnContents: db.prepare("SELECT content FROM chat_turns ORDER BY rowid").all().map((row) => row.content),
       turnIndexes: db.prepare("SELECT name FROM sqlite_master WHERE type = 'index' AND name LIKE 'chat_turns%'").all().length,
     }));
@@ -144,6 +146,39 @@ test("leaves an unreadable legacy file in place and still starts", () => {
     assert.equal(result.turns, 0);
     assert.equal(fs.existsSync(reminderFile), true, "the bad file is not renamed");
     assert.ok(!fs.existsSync(path.join(storageDir, "reminders.json.migrated")));
+  } finally {
+    fs.rmSync(dataDir, { recursive: true, force: true });
+  }
+});
+
+test("adds the repeat column to a database created before recurring reminders", async () => {
+  const dataDir = makeDataDir();
+  const storageDir = path.join(dataDir, "storage");
+  const { DatabaseSync } = await import("node:sqlite");
+  const older = new DatabaseSync(path.join(storageDir, "orbit.db"));
+
+  older.exec(`
+    CREATE TABLE reminders (
+      id TEXT PRIMARY KEY,
+      text TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      completed INTEGER NOT NULL DEFAULT 0,
+      completed_at TEXT,
+      due_at TEXT,
+      notified_at TEXT
+    );
+
+    INSERT INTO reminders (id, text, created_at, completed)
+    VALUES ('old-1', 'an older reminder', '2026-03-04T10:00:00.000Z', 0);
+  `);
+  older.close();
+
+  try {
+    const result = runImport(dataDir);
+
+    assert.equal(result.repeatColumn, true, "the column is added in place");
+    assert.equal(result.reminders, 1, "the existing reminder survives");
+    assert.deepEqual(result.repeats, [null], "old reminders are not recurring");
   } finally {
     fs.rmSync(dataDir, { recursive: true, force: true });
   }

@@ -26,6 +26,17 @@ export const updateReminder = (req, res) => {
   });
 };
 
+export const snoozeReminder = (req, res) => {
+  const { minutes } = req.body ?? {};
+
+  const reminder = remindersService.snoozeReminder(req.params.id, minutes);
+
+  res.json({
+    success: true,
+    reminder,
+  });
+};
+
 export const deleteReminder = (req, res) => {
   const removed = remindersService.deleteReminder(req.params.id);
 
