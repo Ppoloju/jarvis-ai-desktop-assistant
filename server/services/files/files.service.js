@@ -30,8 +30,9 @@ const resolveInStorage = (name) => {
 
 const ensureStorage = () => fs.mkdirSync(storageDir, { recursive: true });
 
-// Internal files that belong to the app, not to the user's storage view
-const INTERNAL_FILES = new Set(["reminders.json"]);
+// Internal files that belong to the app, not to the user's storage view:
+// the reminder list, its temporary write file and any preserved corrupt copy.
+const INTERNAL_FILE = /^reminders\.json(?:\.tmp|\.corrupt-\d+)?$/;
 
 const byTypeThenName = (a, b) => {
   if (a.type !== b.type) {
@@ -46,7 +47,7 @@ export const listFiles = async () => {
 
   return fs
     .readdirSync(storageDir, { withFileTypes: true })
-    .filter((entry) => !INTERNAL_FILES.has(entry.name))
+    .filter((entry) => !INTERNAL_FILE.test(entry.name))
     .flatMap((entry) => {
       let stat;
 

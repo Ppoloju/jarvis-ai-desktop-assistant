@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
+import http from "node:http";
 import path from "node:path";
 
 process.env.ORBIT_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "orbit-test-"));
@@ -18,6 +19,20 @@ let server;
 let base;
 
 const call = (route, options) => fetch(`${base}${route}`, options);
+
+const rawRequest = (route, headers = {}) =>
+  new Promise((resolve, reject) => {
+    const request = http.request(
+      { hostname: "127.0.0.1", port: server.address().port, path: route, headers },
+      (response) => {
+        response.resume();
+        response.on("end", () => resolve({ status: response.statusCode, headers: response.headers }));
+      }
+    );
+
+    request.on("error", reject);
+    request.end();
+  });
 
 const postJson = (route, body) =>
   call(route, {
@@ -198,6 +213,57 @@ test("creates and deletes reminders", async () => {
 
 test("returns 404 for unknown routes", async () => {
   assert.equal((await call("/api/nope")).status, 404);
+});
+
+test("reports health with security headers", async () => {
+  const response = await call("/api/health");
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(body.status, "ok");
+  assert.equal(body.storageWritable, true);
+  assert.ok(body.uptimeSeconds >= 0);
+
+  assert.equal(response.headers.get("x-content-type-options"), "nosniff");
+  assert.equal(response.headers.get("x-frame-options"), "DENY");
+  assert.equal(response.headers.get("cache-control"), "no-store");
+  assert.equal(response.headers.get("x-powered-by"), null);
+});
+
+test("rejects requests addressed to a foreign hostname", async () => {
+  const rebound = await rawRequest("/api/health", { Host: "rebind.evil.example" });
+
+  assert.equal(rebound.status, 403);
+
+  const local = await rawRequest("/api/health", { Host: "localhost" });
+
+  assert.equal(local.status, 200);
+});
+
+test("allows screenshots to load from another origin", async () => {
+  const screenshot = await rawRequest("/screenshots/test.png");
+  const api = await rawRequest("/api/health");
+
+  assert.equal(screenshot.headers["cross-origin-resource-policy"], "cross-origin");
+  assert.equal(api.headers["cross-origin-resource-policy"], "same-origin");
+});
+
+test("keeps reminder bookkeeping out of the files page", async () => {
+  const storageDir = path.join(process.env.ORBIT_DATA_DIR, "storage");
+  fs.mkdirSync(storageDir, { recursive: true });
+  fs.writeFileSync(path.join(storageDir, "reminders.json.tmp"), "{}");
+  fs.writeFileSync(path.join(storageDir, "reminders.json.corrupt-123"), "garbage");
+
+  const { entries } = await (await call("/api/files")).json();
+  const names = entries.map((entry) => entry.name);
+
+  assert.ok(!names.includes("reminders.json"), "the reminder list is hidden");
+  assert.ok(!names.some((name) => name.startsWith("reminders.json.")));
+});
+
+test("rejects oversized chat messages and reminders", async () => {
+  assert.equal((await postJson("/api/chat", { message: "x".repeat(2001) })).status, 413);
+  assert.equal((await postJson("/api/reminders", { text: "x".repeat(501) })).status, 400);
 });
 
 test("blocks foreign origins", async () => {
@@ -500,7 +566,6 @@ test("assistant sets timed reminders from speech", async () => {
   assert.match(added.reply, /desktop notification/i);
 
   const { reminders } = await (await call("/api/reminders")).json();
-
   // An earlier test saved a plain "stretch" reminder, so read the newest one
   const stretch = reminders.findLast((reminder) => reminder.text === "stretch");
 

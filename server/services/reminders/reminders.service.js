@@ -9,11 +9,27 @@ const dataDir = process.env.ORBIT_DATA_DIR || path.join(import.meta.dirname, "..
 const storageDir = path.join(dataDir, "storage");
 const remindersFile = path.join(storageDir, "reminders.json");
 
+const MAX_TEXT_LENGTH = 500;
+const MAX_REMINDERS = 500;
+
+// Keep a damaged file instead of silently overwriting it on the next save.
+const preserveCorruptFile = () => {
+  try {
+    fs.renameSync(remindersFile, `${remindersFile}.corrupt-${Date.now()}`);
+  } catch {
+    // Nothing else can be done; the app still has to start.
+  }
+};
+
 const load = () => {
   try {
     const parsed = JSON.parse(fs.readFileSync(remindersFile, "utf8"));
     return Array.isArray(parsed) ? parsed : [];
-  } catch {
+  } catch (error) {
+    if (error.code !== "ENOENT") {
+      preserveCorruptFile();
+    }
+
     return [];
   }
 };
@@ -25,7 +41,9 @@ const normalize = (reminder) => ({
   notifiedAt: reminder.notifiedAt ?? null,
 });
 
-let reminders = load().map(normalize);
+let reminders = load()
+  .filter((reminder) => reminder && typeof reminder.text === "string")
+  .map(normalize);
 
 const save = () => {
   fs.mkdirSync(storageDir, { recursive: true });
@@ -42,6 +60,10 @@ export const addReminder = (text) => {
     400,
     "Reminder text is required"
   );
+
+  assert(text.trim().length <= MAX_TEXT_LENGTH, 400, "That reminder is too long");
+
+  assert(reminders.length < MAX_REMINDERS, 409, "Too many reminders. Delete a few first.");
 
   const { dueAt, text: cleaned } = parseDueDate(text);
 

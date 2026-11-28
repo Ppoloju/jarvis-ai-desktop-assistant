@@ -1,8 +1,10 @@
 import express from "express";
+import fs from "fs";
 import cors from "cors";
 import path from "path";
 import logger from "./middlewares/logger.js";
 import errorHandler from "./middlewares/errorHandler.js";
+import { securityHeaders, rejectForeignHosts } from "./middlewares/security.js";
 import fileRoutes from "./routes/files/files.routes.js";
 import laptopRoutes from "./routes/laptop/laptop.routes.js";
 import automationRoutes from "./routes/automation/automation.routes.js";
@@ -12,6 +14,8 @@ import * as assistant from "./services/assistant/assistant.service.js";
 import { assert } from "./utils/http.js";
 
 const app = express();
+
+app.disable("x-powered-by");
 const dataDir = process.env.ORBIT_DATA_DIR || import.meta.dirname;
 const screenshotsDir = path.join(dataDir, "screenshots");
 
@@ -36,6 +40,8 @@ const corsOptions = {
   },
 };
 
+app.use(securityHeaders);
+app.use(rejectForeignHosts);
 app.use(cors(corsOptions));
 app.use(express.json({ limit: "1mb" }));
 app.use(logger);
@@ -59,8 +65,27 @@ app.post("/api/chat", async (req, res) => {
   const message = req.body?.message;
 
   assert(typeof message === "string" && message.trim(), 400, "A message is required");
+  assert(message.length <= 2000, 413, "That message is too long (2000 characters at most)");
 
   res.json(await assistant.reply(message));
+});
+
+app.get("/api/health", (req, res) => {
+  let storageWritable = true;
+
+  try {
+    fs.accessSync(dataDir, fs.constants.W_OK);
+  } catch {
+    storageWritable = false;
+  }
+
+  res.json({
+    success: true,
+    status: storageWritable ? "ok" : "degraded",
+    version: process.env.npm_package_version || "1.0.0",
+    uptimeSeconds: Math.round(process.uptime()),
+    storageWritable,
+  });
 });
 
 app.get("/api", (req, res) => {
@@ -69,6 +94,7 @@ app.get("/api", (req, res) => {
     service: "orbit-api",
     endpoints: {
       system: "GET /api/system/info",
+      health: "GET /api/health",
       chat: "POST /api/chat",
       automation: [
         "POST /api/automation/open-website",

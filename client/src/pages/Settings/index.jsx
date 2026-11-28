@@ -16,6 +16,14 @@ const rows = [
   ["Data storage", "server/storage and browser localStorage"],
 ];
 
+const privacy = [
+  "Everything stays on this computer. There is no account, analytics, telemetry or cloud sync.",
+  "The API listens on 127.0.0.1 only, rejects requests addressed to other hostnames, and sends no-store caching for its data.",
+  "Files, reminders and chat history are stored in plain files on this machine; treat that folder like any other local data.",
+  "Voice input is handled by your browser and may be sent to its speech service. Typing never leaves the machine.",
+  "Web pages and searches open in your own browser. Nothing else is fetched from the internet.",
+];
+
 export default function Settings() {
   const [stored, setStored] = useState(() => getChatHistory().length);
   const [cleared, setCleared] = useState(false);
@@ -48,6 +56,17 @@ export default function Settings() {
               </div>
             ))}
           </dl>
+        </Card>
+
+        <Card title="Privacy and security" description="What leaves this computer, and what does not.">
+          <ul className="space-y-2 text-sm text-slate-600">
+            {privacy.map((line) => (
+              <li key={line} className="flex gap-2">
+                <span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-slate-400" />
+                <span>{line}</span>
+              </li>
+            ))}
+          </ul>
         </Card>
 
         <Card

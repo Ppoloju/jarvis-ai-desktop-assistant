@@ -196,6 +196,7 @@ orbit-ai-desktop-assistant/
 |--------|----------|-------------|
 | GET | `/` | Health message |
 | GET | `/api` | Index of available endpoints |
+| GET | `/api/health` | Status, version, uptime and whether the data folder is writable |
 | POST | `/api/chat` | Ask the local assistant |
 | GET | `/api/system/info` | Platform, CPU, memory, uptime and battery |
 | POST | `/api/automation/open-website` | Open an http/https URL |
@@ -310,7 +311,7 @@ These are known and intentional, not unfinished work:
 
 - **No AI model.** Understanding is deterministic pattern matching. Unknown or very varied phrasing
   gets a suggestion list rather than an answer. There is no local LLM backend.
-- **Single user, no authentication.** The API trusts whoever can reach it. Keep it on loopback; do
+- **Single user, no authentication.** The API trusts whoever can reach it on loopback, which is why it also rejects requests addressed to a non-loopback hostname (DNS rebinding) and sends `no-store` along with conservative security headers. Keep it on loopback; do
   not expose port 5000 to a network. CORS limits browsers, not direct HTTP clients.
 - **App launching depends on shortcuts.** Chrome, VS Code and Calculator use fixed commands; anything
   else must have a Start Menu (Windows) or `/Applications` (macOS) shortcut, so portable apps, store-only installers and Linux desktops are not found.
