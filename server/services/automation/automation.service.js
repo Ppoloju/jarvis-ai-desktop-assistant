@@ -155,10 +155,8 @@ const BUILTIN_COMMANDS = {
 export const launchApp = async (app) => {
   assert(typeof app === "string" && app.trim(), 400, "An app name is required");
 
-  if (!hasDesktop()) {
-    throw NO_DESKTOP("Launching applications");
-  }
-
+  // Validate the name before looking for a display, so an unknown app is a 400
+  // even on a headless machine rather than a misleading 503.
   const target = resolveAppName(app);
 
   if (!target) {
@@ -170,6 +168,10 @@ export const launchApp = async (app) => {
         : "I could not find any app shortcuts on this computer to search.";
 
     throw httpError(400, `I could not find "${app.trim()}". ${detail}`);
+  }
+
+  if (!hasDesktop()) {
+    throw NO_DESKTOP("Launching applications");
   }
 
   try {
